@@ -263,7 +263,7 @@ export default function Home() {
 
               return cardItems.map((u) => (
                 <motion.div key={u.index} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: u.index * 0.1 }}
-                  className="bg-white/10 dark:bg-[hsl(28,35%,20%)] backdrop-blur-md rounded-2xl border border-white/20 dark:border-white/15 shadow-2xl overflow-hidden group hover:border-white/40 hover:bg-white/15 transition-all cursor-pointer"
+                  className="bg-[hsl(20,45%,10%)] dark:bg-[hsl(25,35%,14%)] rounded-2xl border border-white/10 shadow-2xl overflow-hidden group hover:border-white/25 hover:bg-[hsl(20,45%,14%)] dark:hover:bg-[hsl(25,35%,18%)] transition-all cursor-pointer"
                   onClick={() => openDetail(u.index)}
                 >
                   <div className="relative h-56 overflow-hidden">
