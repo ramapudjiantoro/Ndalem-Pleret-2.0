@@ -523,6 +523,8 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
 
   const headers = { "x-admin-token": token };
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   const { data: bookings = [], refetch: refetchBookings } = useQuery<Booking[]>({
     queryKey: ["admin-bookings", token],
     queryFn: async () => {
@@ -540,6 +542,12 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
       return res.json();
     },
   });
+
+  async function handleRefresh() {
+    setIsRefreshing(true);
+    await Promise.all([refetchBookings(), refetchBlocked()]);
+    setIsRefreshing(false);
+  }
 
   async function addBlockedDate(e: React.FormEvent) {
     e.preventDefault();
@@ -625,8 +633,9 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button size="sm" variant="outline" onClick={() => { refetchBookings(); refetchBlocked(); }} className="rounded-lg h-8 text-xs">
-              <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh
+            <Button size="sm" variant="outline" onClick={handleRefresh} disabled={isRefreshing} className="rounded-lg h-8 text-xs">
+              <RefreshCw className={`w-3.5 h-3.5 mr-1 transition-transform ${isRefreshing ? "animate-spin" : ""}`} />
+              {isRefreshing ? "Memuat..." : "Refresh"}
             </Button>
             <Button size="sm" variant="outline" onClick={onLogout} className="rounded-lg h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/30">
               <LogOut className="w-3.5 h-3.5 mr-1" /> Keluar
@@ -696,7 +705,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
             ) : (
               <div className="space-y-3">
                 {[...filteredBookings].reverse().map((b) => (
-                  <BookingRow key={b.id} booking={b} token={token} onRefresh={refetchBookings} />
+                  <BookingRow key={b.id} booking={b} token={token} onRefresh={handleRefresh} />
                 ))}
               </div>
             )}
