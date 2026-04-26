@@ -1,0 +1,110 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Earthy, warm, elegant palette for "Ndalem Pleret" */
+  /* Primary: Warm Wood/Bronze */
+  --primary: 28 67% 45%; 
+  --primary-foreground: 30 100% 98%;
+  
+  /* Secondary: Soft Stone/Beige */
+  --secondary: 35 30% 92%;
+  --secondary-foreground: 28 40% 20%;
+  
+  /* Accent: Muted Green/Nature */
+  --accent: 120 15% 90%;
+  --accent-foreground: 120 30% 25%;
+  
+  /* Backgrounds */
+  --background: 35 40% 98%; /* Very light cream */
+  --foreground: 25 15% 20%; /* Dark warm grey */
+  
+  /* Surfaces */
+  --card: 0 0% 100%;
+  --card-foreground: 25 15% 20%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 25 15% 20%;
+  
+  /* UI Elements */
+  --muted: 35 20% 94%;
+  --muted-foreground: 25 10% 45%;
+  --border: 35 15% 85%;
+  --input: 35 15% 85%;
+  --ring: 28 67% 45%;
+  
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+
+  --radius: 0.5rem;
+
+  /* Typography Variables for Tailwind */
+  --font-display: 'Playfair Display', serif;
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+}
+
+.dark {
+  /* Primary — sedikit lebih terang agar kontras di latar gelap */
+  --primary: 28 60% 58%;
+  --primary-foreground: 30 100% 98%;
+
+  /* Secondary */
+  --secondary: 25 18% 18%;
+  --secondary-foreground: 35 25% 88%;
+
+  /* Accent */
+  --accent: 120 10% 18%;
+  --accent-foreground: 120 25% 80%;
+
+  /* Backgrounds — warm dark brown, bukan hitam dingin */
+  --background: 25 12% 9%;
+  --foreground: 35 20% 93%;
+
+  /* Surfaces */
+  --card: 25 10% 13%;
+  --card-foreground: 35 20% 93%;
+  --popover: 25 10% 13%;
+  --popover-foreground: 35 20% 93%;
+
+  /* UI Elements */
+  --muted: 25 10% 17%;
+  --muted-foreground: 35 12% 62%;
+  --border: 25 12% 22%;
+  --input: 25 12% 22%;
+  --ring: 28 60% 58%;
+
+  --destructive: 0 72% 55%;
+  --destructive-foreground: 0 0% 98%;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply tracking-tight;
+  }
+  
+  .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+@layer utilities {
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+  
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
+  }
+}
