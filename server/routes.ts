@@ -213,6 +213,21 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // ── Admin: Delete Booking ─────────────────────────────────────────────────
+  app.delete("/api/admin/bookings/:id", adminAuth, async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    const deleted = await storage.deleteBooking(id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Booking tidak ditemukan" });
+    }
+
+    res.status(204).send();
+
+    // Hapus Google Calendar events terkait booking ini
+    deleteBookingCalendarEvents(deleted.bookingRef)
+      .catch((err) => console.error("Calendar delete on booking-delete failed:", err));
+  });
+
   // ── Admin: Blocked Dates ───────────────────────────────────────────────────
   app.get("/api/admin/blocked-dates", adminAuth, async (_req, res) => {
     const blocked = await storage.getBlockedDates();

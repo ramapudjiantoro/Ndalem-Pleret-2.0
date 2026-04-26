@@ -112,6 +112,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
 function BookingRow({ booking, token, onRefresh }: { booking: Booking; token: string; onRefresh: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function update(field: "status" | "paymentStatus", value: string) {
     setLoading(true);
@@ -121,6 +122,17 @@ function BookingRow({ booking, token, onRefresh }: { booking: Booking; token: st
       body: JSON.stringify({ [field]: value }),
     });
     setLoading(false);
+    onRefresh();
+  }
+
+  async function deleteBooking() {
+    setLoading(true);
+    await fetch(`/api/admin/bookings/${booking.id}`, {
+      method: "DELETE",
+      headers: { "x-admin-token": token },
+    });
+    setLoading(false);
+    setConfirmDelete(false);
     onRefresh();
   }
 
@@ -189,6 +201,28 @@ function BookingRow({ booking, token, onRefresh }: { booking: Booking; token: st
                 <Phone className="w-3 h-3 mr-1" /> WA Tamu
               </Button>
             </a>
+
+            {/* Delete button — muncul untuk semua status */}
+            {!confirmDelete ? (
+              <Button
+                size="sm" variant="outline"
+                className="border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg h-8 text-xs ml-auto"
+                onClick={() => setConfirmDelete(true)}
+                disabled={loading}
+              >
+                <Trash2 className="w-3 h-3 mr-1" /> Hapus Data
+              </Button>
+            ) : (
+              <div className="ml-auto flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50 rounded-lg px-3 py-1.5">
+                <span className="text-xs text-red-700 dark:text-red-400 font-medium">Hapus permanen?</span>
+                <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white h-6 text-xs px-2 rounded" onClick={deleteBooking} disabled={loading}>
+                  Ya, Hapus
+                </Button>
+                <Button size="sm" variant="ghost" className="h-6 text-xs px-2 rounded text-muted-foreground" onClick={() => setConfirmDelete(false)} disabled={loading}>
+                  Batal
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
