@@ -263,13 +263,13 @@ export default function Home() {
                       <span className="flex items-center gap-1.5"><BedDouble className="w-4 h-4" /> {u.bedrooms} Kamar</span>
                       <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> Maks {u.maxGuests} Orang</span>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div><span className="text-2xl font-bold text-primary font-display">{formatIDR(u.price)}</span><span className="text-muted-foreground text-sm">/malam</span></div>
                       <div className="flex gap-2">
-                        <Button variant="outline" onClick={(e) => { e.stopPropagation(); openDetail(u.index); }} className="rounded-xl text-sm px-3">
+                        <Button variant="outline" onClick={(e) => { e.stopPropagation(); openDetail(u.index); }} className="flex-1 sm:flex-initial rounded-xl text-sm px-3">
                           Lihat Detail
                         </Button>
-                        <Button onClick={(e) => { e.stopPropagation(); openBooking(u.id ?? undefined); }} className="rounded-xl text-sm px-3">
+                        <Button onClick={(e) => { e.stopPropagation(); openBooking(u.id ?? undefined); }} className="flex-1 sm:flex-initial rounded-xl text-sm px-3">
                           Pesan
                         </Button>
                       </div>

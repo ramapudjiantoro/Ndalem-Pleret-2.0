@@ -100,37 +100,37 @@ export function AvailabilityCalendar({ onOpenBooking }: AvailabilityCalendarProp
           subtitle="Kalender Booking"
         />
 
+        {/* Unit selector — pinned above calendar on all screen sizes */}
+        {units.length > 0 && (
+          <div className="mb-6">
+            <p className="text-sm font-semibold text-foreground mb-3">Pilih Unit:</p>
+            <div className="flex flex-wrap gap-2">
+              {units.map((unit, idx) => (
+                <button
+                  key={unit.id}
+                  onClick={() => setSelectedUnitIndex(idx)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    selectedUnitIndex === idx
+                      ? "bg-primary text-white shadow-md"
+                      : "bg-secondary text-foreground hover:bg-secondary/70"
+                  }`}
+                >
+                  {unit.name.replace(" — Ndalem Pleret", "")}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-          {/* Left: Legend + Unit Selector + Stats */}
+          {/* Left: Stats + Legend + CTA — on mobile appears BELOW calendar (order-2) */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="lg:col-span-2 space-y-6"
+            className="lg:col-span-2 space-y-6 order-2 lg:order-1"
           >
-            {/* Unit Tabs */}
-            {units.length > 0 && (
-              <div>
-                <p className="text-sm font-semibold text-foreground mb-3">Pilih Unit:</p>
-                <div className="flex flex-wrap gap-2">
-                  {units.map((unit, idx) => (
-                    <button
-                      key={unit.id}
-                      onClick={() => setSelectedUnitIndex(idx)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                        selectedUnitIndex === idx
-                          ? "bg-primary text-white shadow-md"
-                          : "bg-secondary text-foreground hover:bg-secondary/70"
-                      }`}
-                    >
-                      {unit.name.replace(" — Ndalem Pleret", "")}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Availability stat */}
             <div className="bg-white dark:bg-card rounded-2xl border border-border/50 p-6 shadow-sm">
               <div className="flex items-center gap-3 mb-4">
@@ -184,13 +184,13 @@ export function AvailabilityCalendar({ onOpenBooking }: AvailabilityCalendarProp
             </Button>
           </motion.div>
 
-          {/* Right: Calendar */}
+          {/* Right: Calendar — on mobile appears first (order-1), right col on desktop */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="lg:col-span-3"
+            className="lg:col-span-3 order-1 lg:order-2"
           >
             <div className="bg-white dark:bg-card rounded-2xl border border-border/50 shadow-sm p-6">
               {/* Calendar Header */}

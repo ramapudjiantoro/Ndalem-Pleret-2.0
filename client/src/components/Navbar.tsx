@@ -28,11 +28,13 @@ export function Navbar({ onOpenBooking }: NavbarProps) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const solidNav = isScrolled || isMobileMenuOpen;
+
   return (
     <nav
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out",
-        isScrolled ? "bg-white/95 dark:bg-card/95 backdrop-blur-sm shadow-md py-3" : "bg-transparent py-5 text-white"
+        solidNav ? "bg-white/95 dark:bg-card/95 backdrop-blur-sm shadow-md py-3" : "bg-transparent py-5 text-white"
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -66,14 +68,14 @@ export function Navbar({ onOpenBooking }: NavbarProps) {
               </Link>
             ))}
             <ThemeToggle
-              className={cn(isScrolled ? "" : "text-white hover:bg-white/20 hover:text-white")}
+              className={cn(solidNav ? "" : "text-white hover:bg-white/20 hover:text-white")}
             />
             <Button
               onClick={onOpenBooking}
-              variant={isScrolled ? "default" : "secondary"}
+              variant={solidNav ? "default" : "secondary"}
               className={cn(
                 "rounded-full px-6 font-semibold shadow-lg hover:shadow-xl transition-all",
-                !isScrolled && "bg-white text-primary hover:bg-white/90"
+                !solidNav && "bg-white text-primary hover:bg-white/90"
               )}
             >
               <Calendar className="w-4 h-4 mr-2" />
@@ -84,16 +86,16 @@ export function Navbar({ onOpenBooking }: NavbarProps) {
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-1">
             <ThemeToggle
-              className={cn(isScrolled ? "" : "text-white hover:bg-white/20 hover:text-white")}
+              className={cn(solidNav ? "" : "text-white hover:bg-white/20 hover:text-white")}
             />
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-2 rounded-md focus:outline-none"
             >
               {isMobileMenuOpen ? (
-                <X className={cn("h-6 w-6", isScrolled ? "text-foreground" : "text-white")} />
+                <X className={cn("h-6 w-6", solidNav ? "text-foreground" : "text-white")} />
               ) : (
-                <Menu className={cn("h-6 w-6", isScrolled ? "text-foreground" : "text-white")} />
+                <Menu className={cn("h-6 w-6", solidNav ? "text-foreground" : "text-white")} />
               )}
             </button>
           </div>
