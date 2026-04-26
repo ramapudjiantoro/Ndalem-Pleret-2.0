@@ -736,7 +736,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
                   Tandai tanggal sebagai tidak tersedia (maintenance, keperluan pribadi, dll).
                 </p>
                 <form onSubmit={addBlockedDate} className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs mb-1 block">Unit</Label>
                       <select
@@ -776,7 +776,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
                 </p>
 
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs mb-1 block">Unit</Label>
                       <select
