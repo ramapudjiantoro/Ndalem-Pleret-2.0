@@ -277,7 +277,7 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
           className="relative z-10 w-full sm:max-w-2xl bg-background rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-white">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-white dark:bg-card">
             <div>
               <h2 className="text-lg font-bold font-display text-foreground">
                 {step === 1 && "Pilih Tanggal"}
