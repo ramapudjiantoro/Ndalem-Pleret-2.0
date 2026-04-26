@@ -83,7 +83,7 @@ function MiniCalendar({
               className={[
                 "h-9 w-full text-xs rounded-lg transition-colors font-medium relative",
                 status === "past" && "text-muted-foreground/25 cursor-not-allowed pointer-events-none",
-                status === "unavailable" && "bg-gray-100 text-gray-300 cursor-not-allowed pointer-events-none select-none",
+                status === "unavailable" && "bg-gray-100 dark:bg-gray-800 text-gray-300 dark:text-gray-600 cursor-not-allowed pointer-events-none select-none",
                 status === "available" && "hover:bg-primary/10 text-foreground cursor-pointer",
                 status === "check-in" && "bg-primary text-white rounded-l-lg",
                 status === "check-out" && "bg-primary text-white rounded-r-lg",
@@ -95,7 +95,7 @@ function MiniCalendar({
                 <span className="relative">
                   {date.getDate()}
                   <span className="absolute inset-0 flex items-center justify-center">
-                    <span className="block w-4 h-px bg-gray-300 rotate-45" />
+                    <span className="block w-4 h-px bg-gray-300 dark:bg-gray-600 rotate-45" />
                   </span>
                 </span>
               ) : date.getDate()}
@@ -315,7 +315,7 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                         <button
                           key={unit.id}
                           onClick={() => setSelectedUnitId(unit.id)}
-                          className={`relative text-left p-4 rounded-xl border-2 transition-all ${selectedUnitId === unit.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40 bg-white"}`}
+                          className={`relative text-left p-4 rounded-xl border-2 transition-all ${selectedUnitId === unit.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40 bg-white dark:bg-card/60"}`}
                         >
                           <div className="font-semibold text-sm text-foreground">{unit.name}</div>
                           <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
@@ -338,7 +338,7 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                   <div className="flex items-center gap-3 mb-4 text-xs">
                     <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-primary"></span> Dipilih</span>
                     <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-primary/15 border border-primary/30"></span> Rentang</span>
-                    <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-gray-100 border border-gray-200"></span> Penuh</span>
+                    <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600"></span> Penuh</span>
                   </div>
 
                   {/* Calendar nav */}
@@ -387,7 +387,7 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                 </div>
 
                 {formError && (
-                  <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+                  <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 p-3 rounded-lg">
                     <AlertTriangle className="w-4 h-4 shrink-0" />{formError}
                   </div>
                 )}
@@ -449,7 +449,7 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                 </div>
 
                 {formError && (
-                  <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+                  <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 p-3 rounded-lg">
                     <AlertTriangle className="w-4 h-4 shrink-0" />{formError}
                   </div>
                 )}
@@ -496,7 +496,7 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                   </div>
                 </div>
 
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 space-y-1">
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-xl p-4 text-sm text-amber-800 dark:text-amber-300 space-y-1">
                   <div className="font-semibold">Langkah selanjutnya:</div>
                   <ol className="list-decimal list-inside space-y-1 text-xs">
                     <li>Bayar sesuai nominal di atas via QRIS</li>
@@ -507,7 +507,7 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                 </div>
 
                 {formError && (
-                  <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+                  <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 p-3 rounded-lg">
                     <AlertTriangle className="w-4 h-4 shrink-0" />{formError}
                   </div>
                 )}
@@ -518,8 +518,8 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
             {step === 4 && bookingResult && (
               <div className="p-6 space-y-5">
                 <div className="text-center">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Check className="w-8 h-8 text-green-600" />
+                  <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
                   </div>
                   <h3 className="text-xl font-bold font-display text-foreground">Pemesanan Diterima!</h3>
                   <p className="text-muted-foreground text-sm mt-2">Simpan kode pemesanan Anda dan kirim bukti pembayaran ke WhatsApp kami untuk konfirmasi.</p>
