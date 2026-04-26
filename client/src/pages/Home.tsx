@@ -41,6 +41,13 @@ const GALLERY_IMAGES = [
   { src: viewSawahImg,    alt: "View Sawah" },
 ];
 
+const UNIT_FEATURES = [
+  // Ndalem Belakang
+  ["Kapasitas 4–6 Orang", "Ruang Keluarga Luas + Smart TV", "Dapur Lengkap Siap Pakai", "Taman Pribadi & Parkir", "AC + Wi-Fi di Seluruh Area"],
+  // Ndalem Tengah
+  ["Kapasitas 4–6 Orang", "Ruang Keluarga + Smart TV", "Dapur Lengkap Siap Pakai", "Area Parkir Luas & Aman", "AC + Wi-Fi di Seluruh Area"],
+];
+
 const TRUST_STATS = [
   { icon: Users, value: "500+", label: "Tamu Puas" },
   { icon: Star, value: "4.9", label: "Rating Rata-rata" },
@@ -225,51 +232,73 @@ export default function Home() {
       </section>
 
       {/* ── UNITS SECTION ── */}
-      <section id="units" className="py-24 bg-secondary/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionHeading title="Pilih Unit Anda" subtitle="2 Unit Tersedia" />
+      <section id="units" className="py-24 bg-primary dark:bg-[hsl(25,20%,12%)] text-white relative overflow-hidden">
+        {/* Background pattern */}
+        <div className="absolute inset-0 opacity-10 dark:opacity-5"
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          {/* Section heading inline — white text on dark bg */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }} transition={{ duration: 0.6 }}
+            className="text-center mb-14"
+          >
+            <p className="text-white/60 uppercase tracking-widest text-xs font-semibold mb-3">2 Unit Tersedia</p>
+            <h2 className="text-3xl md:text-5xl font-display font-bold text-white">Pilih Unit Anda</h2>
+            <div className="w-12 h-0.5 bg-white/40 mx-auto mt-5" />
+          </motion.div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {(() => {
               const UNIT_PHOTOS = [heroImg, tengahFrontImg];
-              const UNIT_SLUGS: Array<"belakang" | "tengah"> = ["belakang", "tengah"];
               const STATIC_UNITS = [
-                { name: "Ndalem Belakang", desc: "Rumah utuh dengan 2 kamar tidur, ruang keluarga luas, dapur lengkap, dan taman pribadi.", price: 600000 },
-                { name: "Ndalem Tengah", desc: "Rumah kedua dengan nuansa hangat, 2 kamar tidur, area parkir luas, dan fasilitas modern lengkap.", price: 600000 },
+                { name: "Ndalem Belakang", price: 600000 },
+                { name: "Ndalem Tengah", price: 600000 },
               ];
 
               const cardItems = units.length === 0
-                ? STATIC_UNITS.map((u, i) => ({ id: null, index: i, name: u.name, desc: u.desc, price: u.price, bedrooms: 2, maxGuests: 6 }))
-                : units.map((u, i) => ({ id: u.id, index: i, name: u.name, desc: u.description, price: u.pricePerNight, bedrooms: u.bedrooms, maxGuests: u.maxGuests }));
+                ? STATIC_UNITS.map((u, i) => ({ id: null, index: i, name: u.name, price: u.price }))
+                : units.map((u, i) => ({ id: u.id, index: i, name: u.name, price: u.pricePerNight }));
 
               return cardItems.map((u) => (
                 <motion.div key={u.index} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: u.index * 0.1 }}
-                  className="bg-white dark:bg-card rounded-2xl shadow-md border border-border/50 overflow-hidden group hover:shadow-xl transition-all cursor-pointer"
+                  className="bg-white/10 dark:bg-[hsl(28,35%,20%)] backdrop-blur-md rounded-2xl border border-white/20 dark:border-white/15 shadow-2xl overflow-hidden group hover:border-white/40 hover:bg-white/15 transition-all cursor-pointer"
                   onClick={() => openDetail(u.index)}
                 >
                   <div className="relative h-56 overflow-hidden">
                     <img src={UNIT_PHOTOS[u.index]} alt={u.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                     <div className="absolute bottom-4 left-4 text-white font-bold font-display text-lg">{u.name}</div>
-                    {/* "Lihat Detail" overlay on hover */}
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                      <span className="bg-white dark:bg-card text-primary font-semibold text-sm px-4 py-2 rounded-full flex items-center gap-2 shadow-lg">
+                      <span className="bg-white/90 text-primary font-semibold text-sm px-4 py-2 rounded-full flex items-center gap-2 shadow-lg">
                         <Search className="w-4 h-4" /> Lihat Detail & Foto
                       </span>
                     </div>
                   </div>
                   <div className="p-6">
-                    <p className="text-muted-foreground text-sm leading-relaxed mb-4">{u.desc}</p>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-5">
-                      <span className="flex items-center gap-1.5"><BedDouble className="w-4 h-4" /> {u.bedrooms} Kamar</span>
-                      <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> Maks {u.maxGuests} Orang</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      <div><span className="text-2xl font-bold text-primary font-display">{formatIDR(u.price)}</span><span className="text-muted-foreground text-sm">/malam</span></div>
+                    <ul className="space-y-2 mb-6">
+                      {UNIT_FEATURES[u.index].map((f) => (
+                        <li key={f} className="flex items-center gap-2.5 text-sm text-white/85">
+                          <div className="bg-white/20 p-0.5 rounded-full shrink-0">
+                            <CheckCircle2 className="w-3 h-3 text-white" />
+                          </div>
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-white/15">
+                      <div>
+                        <span className="text-2xl font-bold text-white font-display">{formatIDR(u.price)}</span>
+                        <span className="text-white/60 text-sm">/malam</span>
+                      </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" onClick={(e) => { e.stopPropagation(); openDetail(u.index); }} className="flex-1 sm:flex-initial rounded-xl text-sm px-3">
+                        <Button variant="outline" onClick={(e) => { e.stopPropagation(); openDetail(u.index); }}
+                          className="flex-1 sm:flex-initial rounded-xl text-sm px-3 border-white/30 text-white hover:bg-white/10 bg-transparent">
                           Lihat Detail
                         </Button>
-                        <Button onClick={(e) => { e.stopPropagation(); openBooking(u.id ?? undefined); }} className="flex-1 sm:flex-initial rounded-xl text-sm px-3">
+                        <Button onClick={(e) => { e.stopPropagation(); openBooking(u.id ?? undefined); }}
+                          className="flex-1 sm:flex-initial rounded-xl text-sm px-3 bg-white text-primary hover:bg-white/90 font-bold">
                           Pesan
                         </Button>
                       </div>
@@ -279,6 +308,11 @@ export default function Home() {
               ));
             })()}
           </div>
+
+          {/* Deposit info */}
+          <p className="text-center text-white/55 text-sm mt-8">
+            + Deposit jaminan Rp 500.000 (dikembalikan setelah check-out &amp; pengecekan unit)
+          </p>
         </div>
       </section>
 
@@ -323,50 +357,6 @@ export default function Home() {
 
       {/* ── TESTIMONIALS ── */}
       <TestimonialsSection />
-
-      {/* ── PRICING ── */}
-      <section id="pricing" className="py-24 bg-primary dark:bg-[hsl(25,20%,12%)] text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10 dark:opacity-5"
-          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
-
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
-            <h2 className="text-3xl md:text-5xl font-display font-bold mb-6 text-white">Harga Jujur, Fasilitas Lengkap</h2>
-            <p className="text-white/80 text-lg mb-12 max-w-2xl mx-auto">
-              Satu rumah utuh yang Anda miliki sepenuhnya — tidak ada tamu lain, tidak ada gangguan.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto mb-8">
-              {["Ndalem Belakang", "Ndalem Tengah"].map((unit, i) => (
-                <div key={i} className="bg-white/10 dark:bg-[hsl(28,35%,20%)] backdrop-blur-md rounded-2xl p-8 border border-white/20 dark:border-white/15 shadow-2xl">
-                  <div className="text-sm uppercase tracking-widest text-white/70 font-semibold mb-4">{unit}</div>
-                  <div className="flex justify-center items-baseline gap-1 mb-6">
-                    <span className="text-lg text-white/80 font-medium">IDR</span>
-                    <span className="text-5xl font-bold font-display">600rb</span>
-                    <span className="text-white/60 font-light">/malam</span>
-                  </div>
-                  <ul className="text-left space-y-3 mb-8 text-white/90 text-sm">
-                    {["Kapasitas 4–6 Orang", "Dapur & Ruang Keluarga", "AC di Setiap Kamar", "Parkir Luas & Aman"].map((f) => (
-                      <li key={f} className="flex items-center gap-2.5">
-                        <div className="bg-white/20 p-1 rounded-full"><CheckCircle2 className="w-3 h-3" /></div>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    onClick={() => openBooking()}
-                    className="w-full bg-white dark:bg-foreground text-primary dark:text-background hover:bg-white/90 font-bold h-12 rounded-xl shadow-xl transition-all active:scale-95"
-                  >
-                    Pesan {unit}
-                  </Button>
-                </div>
-              ))}
-            </div>
-
-            <p className="text-white/60 text-sm">+ Deposit jaminan Rp 500.000 (dikembalikan setelah check-out &amp; pengecekan unit)</p>
-          </motion.div>
-        </div>
-      </section>
 
       {/* ── LOCATION & CONTACT ── */}
       <section id="location" className="py-24 bg-secondary/30">
