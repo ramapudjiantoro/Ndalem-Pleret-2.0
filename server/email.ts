@@ -3,7 +3,7 @@ import { Resend } from "resend";
 // ─── Config ───────────────────────────────────────────────────────────────────
 // Resend uses HTTPS (port 443) — tidak diblokir Railway seperti SMTP (587/465)
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const EMAIL_FROM = "Ndalem Pleret <noreply@ndalempleret.com>";
+const EMAIL_FROM = "Ndalem Pleret <reservasi@ndalempleret.com>";
 
 console.log(`📧 Email config: RESEND_API_KEY=${RESEND_API_KEY ? "set" : "NOT SET ❌"}`);
 
@@ -380,6 +380,12 @@ export async function sendBookingReceived(data: {
     to: data.guestEmail,
     subject: `Pesanan Diterima — ${data.bookingRef} · Ndalem Pleret`,
     html: buildReceiptHtml(data),
+    headers: {
+      "X-Priority": "1",
+      "X-MSMail-Priority": "High",
+      "Importance": "high",
+      "Precedence": "personal",
+    },
   });
   if (error) throw new Error(`Resend error: ${error.message}`);
   console.log(`📧 Receipt email sent to ${data.guestEmail} [${data.bookingRef}]`);
@@ -405,6 +411,12 @@ export async function sendBookingConfirmation(data: {
     to: data.guestEmail,
     subject: `Pesanan Dikonfirmasi — ${data.bookingRef} · Ndalem Pleret`,
     html: buildConfirmationHtml(data),
+    headers: {
+      "X-Priority": "1",
+      "X-MSMail-Priority": "High",
+      "Importance": "high",
+      "Precedence": "personal",
+    },
   });
   if (error) throw new Error(`Resend error: ${error.message}`);
   console.log(`📧 Confirmation email sent to ${data.guestEmail} [${data.bookingRef}]`);
