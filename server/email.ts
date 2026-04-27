@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { resolve4 } from "dns/promises";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const EMAIL_USER     = (process.env.EMAIL_USER     || "ndalempleret@gmail.com").trim();
@@ -8,21 +9,34 @@ const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD?.replace(/\s/g, "");
 // Log email config status on startup (never logs the actual password)
 console.log(`📧 Email config: USER=${EMAIL_USER} | PASSWORD=${EMAIL_PASSWORD ? `set (${EMAIL_PASSWORD.length} chars)` : "NOT SET"}`);
 
-function createTransporter() {
+// Resolve smtp.gmail.com to an explicit IPv4 address.
+// Railway's outbound IPv6 is unreachable — we MUST connect via IPv4.
+// nodemailer/dns settings are unreliable inside esbuild bundles,
+// so we resolve manually and pass the raw IP as host.
+async function resolveSmtpHost(): Promise<string> {
+  try {
+    const addrs = await resolve4("smtp.gmail.com");
+    console.log(`📧 Resolved smtp.gmail.com → ${addrs[0]} (IPv4)`);
+    return addrs[0];
+  } catch (err: any) {
+    console.warn("⚠️  Could not resolve smtp.gmail.com IPv4, falling back to hostname:", err?.message);
+    return "smtp.gmail.com";
+  }
+}
+
+async function createTransporter() {
   if (!EMAIL_PASSWORD) {
     console.error("❌ EMAIL_PASSWORD env var is not set — email will not be sent.");
     return null;
   }
-  // Port 587 + STARTTLS — DNS IPv4 is forced globally in index.ts
+  const host = await resolveSmtpHost();
   return nodemailer.createTransport({
-    host: "smtp.gmail.com",
+    host,                          // explicit IPv4 — bypasses IPv6 DNS
     port: 587,
     secure: false,
     requireTLS: true,
-    auth: {
-      user: EMAIL_USER,
-      pass: EMAIL_PASSWORD,
-    },
+    auth: { user: EMAIL_USER, pass: EMAIL_PASSWORD },
+    tls: { servername: "smtp.gmail.com" }, // SNI must still use hostname for TLS cert
   });
 }
 
@@ -30,7 +44,8 @@ function createTransporter() {
 export async function verifyEmailConfig(): Promise<void> {
   if (!EMAIL_PASSWORD) return;
   try {
-    const transporter = createTransporter()!;
+    const transporter = await createTransporter();
+    if (!transporter) return;
     await transporter.verify();
     console.log("✅ Email SMTP connection verified — ready to send.");
   } catch (err: any) {
@@ -389,7 +404,7 @@ export async function sendBookingReceived(data: {
   totalPrice: number;
   guestCount: number;
 }): Promise<void> {
-  const transporter = createTransporter();
+  const transporter = await createTransporter();
   if (!transporter) {
     console.warn("⚠️  EMAIL_PASSWORD not set — skipping receipt email.");
     return;
@@ -416,7 +431,7 @@ export async function sendBookingConfirmation(data: {
   totalPrice: number;
   guestCount: number;
 }): Promise<void> {
-  const transporter = createTransporter();
+  const transporter = await createTransporter();
   if (!transporter) {
     console.warn("⚠️  EMAIL_PASSWORD not set — skipping confirmation email.");
     return;
