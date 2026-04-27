@@ -13,16 +13,18 @@ function createTransporter() {
     console.error("❌ EMAIL_PASSWORD env var is not set — email will not be sent.");
     return null;
   }
-  // Use explicit SMTP settings — more reliable than service:"gmail" shorthand
+  // Port 587 + STARTTLS + force IPv4 — required for Railway (blocks IPv6 outbound)
   return nodemailer.createTransport({
     host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,
+    requireTLS: true,
     auth: {
       user: EMAIL_USER,
       pass: EMAIL_PASSWORD,
     },
-  });
+    socketOptions: { family: 4 }, // force IPv4 — Railway blocks IPv6
+  } as any);
 }
 
 // ─── Verify transporter (called on startup) ───────────────────────────────────
