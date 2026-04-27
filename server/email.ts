@@ -13,7 +13,7 @@ function createTransporter() {
     console.error("❌ EMAIL_PASSWORD env var is not set — email will not be sent.");
     return null;
   }
-  // Port 587 + STARTTLS + force IPv4 — required for Railway (blocks IPv6 outbound)
+  // Port 587 + STARTTLS — DNS IPv4 is forced globally in index.ts
   return nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
@@ -23,8 +23,7 @@ function createTransporter() {
       user: EMAIL_USER,
       pass: EMAIL_PASSWORD,
     },
-    socketOptions: { family: 4 }, // force IPv4 — Railway blocks IPv6
-  } as any);
+  });
 }
 
 // ─── Verify transporter (called on startup) ───────────────────────────────────
