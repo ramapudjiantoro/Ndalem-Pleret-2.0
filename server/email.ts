@@ -1,18 +1,42 @@
 import nodemailer from "nodemailer";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-const EMAIL_FROM = "ndalempleret@gmail.com";
-const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD;
+const EMAIL_USER     = (process.env.EMAIL_USER     || "ndalempleret@gmail.com").trim();
+// Strip all spaces — Google displays App Passwords with spaces but they must be sent without
+const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD?.replace(/\s/g, "");
+
+// Log email config status on startup (never logs the actual password)
+console.log(`📧 Email config: USER=${EMAIL_USER} | PASSWORD=${EMAIL_PASSWORD ? `set (${EMAIL_PASSWORD.length} chars)` : "NOT SET"}`);
 
 function createTransporter() {
-  if (!EMAIL_PASSWORD) return null;
+  if (!EMAIL_PASSWORD) {
+    console.error("❌ EMAIL_PASSWORD env var is not set — email will not be sent.");
+    return null;
+  }
+  // Use explicit SMTP settings — more reliable than service:"gmail" shorthand
   return nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
     auth: {
-      user: EMAIL_FROM,
+      user: EMAIL_USER,
       pass: EMAIL_PASSWORD,
     },
   });
+}
+
+// ─── Verify transporter (called on startup) ───────────────────────────────────
+export async function verifyEmailConfig(): Promise<void> {
+  if (!EMAIL_PASSWORD) return;
+  try {
+    const transporter = createTransporter()!;
+    await transporter.verify();
+    console.log("✅ Email SMTP connection verified — ready to send.");
+  } catch (err: any) {
+    console.error("❌ Email SMTP verification FAILED:", err?.message ?? err);
+    console.error("   → Check EMAIL_USER and EMAIL_PASSWORD in Railway Variables.");
+    console.error("   → Make sure App Password was generated for:", EMAIL_USER);
+  }
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -370,7 +394,7 @@ export async function sendBookingReceived(data: {
     return;
   }
   await transporter.sendMail({
-    from: `"Ndalem Pleret" <${EMAIL_FROM}>`,
+    from: `"Ndalem Pleret" <${EMAIL_USER}>`,
     to: data.guestEmail,
     subject: `📋 Pesanan Diterima — ${data.bookingRef} · Ndalem Pleret`,
     html: buildReceiptHtml(data),
@@ -398,7 +422,7 @@ export async function sendBookingConfirmation(data: {
   }
 
   await transporter.sendMail({
-    from: `"Ndalem Pleret" <${EMAIL_FROM}>`,
+    from: `"Ndalem Pleret" <${EMAIL_USER}>`,
     to: data.guestEmail,
     subject: `✅ Booking Dikonfirmasi! — Ndalem Pleret`,
     html: buildConfirmationHtml(data),

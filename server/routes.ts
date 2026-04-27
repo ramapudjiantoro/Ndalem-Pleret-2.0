@@ -2,7 +2,7 @@ import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { insertBookingSchema, insertInquirySchema } from "@shared/schema";
-import { sendBookingReceived, sendBookingConfirmation } from "./email";
+import { sendBookingReceived, sendBookingConfirmation, verifyEmailConfig } from "./email";
 import { createBookingCalendarEvents, deleteBookingCalendarEvents } from "./calendar";
 import { z } from "zod";
 
@@ -123,7 +123,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         nights: booking.nights,
         totalPrice: booking.totalPrice,
         guestCount: booking.guestCount,
-      }).catch((err) => console.error("Receipt email failed:", err));
+      }).catch((err) => console.error("❌ Receipt email failed:", err?.message ?? err));
 
       // Fire-and-forget — buat 3 Google Calendar events
       createBookingCalendarEvents({
@@ -155,6 +155,30 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     // Also fetch unit name
     const unit = await storage.getUnit(booking.unitId);
     res.json({ ...booking, unitName: unit?.name ?? "Unknown Unit" });
+  });
+
+  // ── Admin: Test Email ──────────────────────────────────────────────────────
+  app.post("/api/admin/test-email", adminAuth, async (req, res) => {
+    const { to } = req.body as { to?: string };
+    if (!to) return res.status(400).json({ message: "Field 'to' (email tujuan) diperlukan" });
+    try {
+      await verifyEmailConfig();
+      await sendBookingReceived({
+        guestEmail: to,
+        bookingRef: "NP-TEST-0000",
+        guestName: "Test Tamu",
+        unitName: "Ndalem Belakang (TEST)",
+        checkIn: new Date().toISOString().slice(0, 10),
+        checkOut: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10),
+        nights: 2,
+        totalPrice: 1200000,
+        guestCount: 4,
+      });
+      res.json({ ok: true, message: `Test email sent to ${to}` });
+    } catch (err: any) {
+      console.error("❌ Test email failed:", err?.message ?? err);
+      res.status(500).json({ ok: false, message: err?.message ?? "Unknown error" });
+    }
   });
 
   // ── Admin: Login ───────────────────────────────────────────────────────────
@@ -203,7 +227,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         nights: updated.nights,
         totalPrice: updated.totalPrice,
         guestCount: updated.guestCount,
-      }).catch((err) => console.error("Confirmation email failed:", err));
+      }).catch((err) => console.error("❌ Confirmation email failed:", err?.message ?? err));
     }
 
     // Google Calendar: hapus semua event jika booking dibatalkan
