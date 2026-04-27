@@ -1,6 +1,5 @@
 import "dotenv/config"; // load .env file before anything else
-import { setDefaultResultOrder } from "dns";
-setDefaultResultOrder("ipv4first"); // Railway: force IPv4 DNS — prevents ENETUNREACH on IPv6
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";

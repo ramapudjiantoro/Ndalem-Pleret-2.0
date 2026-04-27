@@ -1,58 +1,27 @@
-import nodemailer from "nodemailer";
-import { resolve4 } from "dns/promises";
+import { Resend } from "resend";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-const EMAIL_USER     = (process.env.EMAIL_USER     || "ndalempleret@gmail.com").trim();
-// Strip all spaces — Google displays App Passwords with spaces but they must be sent without
-const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD?.replace(/\s/g, "");
+// Resend uses HTTPS (port 443) — tidak diblokir Railway seperti SMTP (587/465)
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const EMAIL_FROM = "Ndalem Pleret <noreply@ndalempleret.com>";
 
-// Log email config status on startup (never logs the actual password)
-console.log(`📧 Email config: USER=${EMAIL_USER} | PASSWORD=${EMAIL_PASSWORD ? `set (${EMAIL_PASSWORD.length} chars)` : "NOT SET"}`);
+console.log(`📧 Email config: RESEND_API_KEY=${RESEND_API_KEY ? "set" : "NOT SET ❌"}`);
 
-// Resolve smtp.gmail.com to an explicit IPv4 address.
-// Railway's outbound IPv6 is unreachable — we MUST connect via IPv4.
-// nodemailer/dns settings are unreliable inside esbuild bundles,
-// so we resolve manually and pass the raw IP as host.
-async function resolveSmtpHost(): Promise<string> {
-  try {
-    const addrs = await resolve4("smtp.gmail.com");
-    console.log(`📧 Resolved smtp.gmail.com → ${addrs[0]} (IPv4)`);
-    return addrs[0];
-  } catch (err: any) {
-    console.warn("⚠️  Could not resolve smtp.gmail.com IPv4, falling back to hostname:", err?.message);
-    return "smtp.gmail.com";
-  }
-}
-
-async function createTransporter() {
-  if (!EMAIL_PASSWORD) {
-    console.error("❌ EMAIL_PASSWORD env var is not set — email will not be sent.");
+function getResend(): Resend | null {
+  if (!RESEND_API_KEY) {
+    console.error("❌ RESEND_API_KEY not set — email will not be sent.");
     return null;
   }
-  const host = await resolveSmtpHost();
-  return nodemailer.createTransport({
-    host,                          // explicit IPv4 — bypasses IPv6 DNS
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    auth: { user: EMAIL_USER, pass: EMAIL_PASSWORD },
-    tls: { servername: "smtp.gmail.com" }, // SNI must still use hostname for TLS cert
-  });
+  return new Resend(RESEND_API_KEY);
 }
 
-// ─── Verify transporter (called on startup) ───────────────────────────────────
+// ─── Startup check ────────────────────────────────────────────────────────────
 export async function verifyEmailConfig(): Promise<void> {
-  if (!EMAIL_PASSWORD) return;
-  try {
-    const transporter = await createTransporter();
-    if (!transporter) return;
-    await transporter.verify();
-    console.log("✅ Email SMTP connection verified — ready to send.");
-  } catch (err: any) {
-    console.error("❌ Email SMTP verification FAILED:", err?.message ?? err);
-    console.error("   → Check EMAIL_USER and EMAIL_PASSWORD in Railway Variables.");
-    console.error("   → Make sure App Password was generated for:", EMAIL_USER);
+  if (!RESEND_API_KEY) {
+    console.error("❌ RESEND_API_KEY not set — add it to Railway Variables.");
+    return;
   }
+  console.log("✅ Resend API key is set — email ready.");
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -404,17 +373,15 @@ export async function sendBookingReceived(data: {
   totalPrice: number;
   guestCount: number;
 }): Promise<void> {
-  const transporter = await createTransporter();
-  if (!transporter) {
-    console.warn("⚠️  EMAIL_PASSWORD not set — skipping receipt email.");
-    return;
-  }
-  await transporter.sendMail({
-    from: `"Ndalem Pleret" <${EMAIL_USER}>`,
+  const resend = getResend();
+  if (!resend) return;
+  const { error } = await resend.emails.send({
+    from: EMAIL_FROM,
     to: data.guestEmail,
-    subject: `📋 Pesanan Diterima — ${data.bookingRef} · Ndalem Pleret`,
+    subject: `Pesanan Diterima — ${data.bookingRef} · Ndalem Pleret`,
     html: buildReceiptHtml(data),
   });
+  if (error) throw new Error(`Resend error: ${error.message}`);
   console.log(`📧 Receipt email sent to ${data.guestEmail} [${data.bookingRef}]`);
 }
 
@@ -431,18 +398,14 @@ export async function sendBookingConfirmation(data: {
   totalPrice: number;
   guestCount: number;
 }): Promise<void> {
-  const transporter = await createTransporter();
-  if (!transporter) {
-    console.warn("⚠️  EMAIL_PASSWORD not set — skipping confirmation email.");
-    return;
-  }
-
-  await transporter.sendMail({
-    from: `"Ndalem Pleret" <${EMAIL_USER}>`,
+  const resend = getResend();
+  if (!resend) return;
+  const { error } = await resend.emails.send({
+    from: EMAIL_FROM,
     to: data.guestEmail,
-    subject: `✅ Booking Dikonfirmasi! — Ndalem Pleret`,
+    subject: `Booking Dikonfirmasi! — Ndalem Pleret`,
     html: buildConfirmationHtml(data),
   });
-
+  if (error) throw new Error(`Resend error: ${error.message}`);
   console.log(`📧 Confirmation email sent to ${data.guestEmail} [${data.bookingRef}]`);
 }
