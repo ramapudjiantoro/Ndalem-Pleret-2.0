@@ -232,16 +232,16 @@ function buildConfirmationHtml(data: {
 
         <!-- Green success bar -->
         <tr><td style="background:#2d6a4f;padding:20px 40px;text-align:center;">
-          <p style="margin:0;color:#fff;font-size:17px;font-weight:700;">✓ &nbsp;Pesanan Dikonfirmasi!</p>
+          <p style="margin:0;color:#fff;font-size:17px;font-weight:700;">Pesanan Anda Telah Dikonfirmasi</p>
         </td></tr>
 
         <!-- Body -->
         <tr><td style="background:#fff;padding:40px;">
 
-          <p style="margin:0 0 8px;color:#555;font-size:14px;">Halo, <strong style="color:#1a1a1a;">${guestName}</strong>! 👋</p>
+          <p style="margin:0 0 8px;color:#555;font-size:14px;">Halo, <strong style="color:#1a1a1a;">${guestName}</strong>,</p>
           <p style="margin:0 0 20px;color:#555;font-size:14px;line-height:1.7;">
-            Selamat — pembayaran Anda telah kami terima dan pesanan Anda <strong style="color:#2d6a4f;">sudah final & terkonfirmasi</strong>.
-            Tidak ada langkah tambahan yang perlu dilakukan. Cukup datang dan nikmati masa menginap Anda bersama kami di Solo. 🏡
+            Pembayaran Anda telah kami terima dan pesanan Anda <strong style="color:#2d6a4f;">sudah final dan terkonfirmasi</strong>.
+            Tidak ada langkah tambahan yang perlu dilakukan. Cukup datang dan nikmati masa menginap Anda di Ndalem Pleret.
           </p>
 
           <!-- Booking ref badge -->
@@ -307,13 +307,13 @@ function buildConfirmationHtml(data: {
               Check-in mulai pukul <strong>14.00 WIB</strong> dan check-out paling lambat <strong>12.00 WIB</strong>.
             </p>
             <p style="margin:0;font-size:13px;color:#555;line-height:1.7;">
-              💬 Pada hari kedatangan atau menjelang jam check-in, mohon informasikan kepada kami melalui WhatsApp agar proses check-in dapat berjalan lebih lancar.
+              Pada hari kedatangan, mohon informasikan kepada kami melalui WhatsApp agar proses check-in dapat berjalan lebih lancar.
             </p>
           </div>
 
           <!-- Lokasi / Google Maps -->
           <div style="background:#f9f6f2;border:1px solid #e8ddd3;border-radius:12px;padding:18px 20px;margin-bottom:28px;">
-            <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#7c5c3e;">📍 Lokasi Ndalem Pleret</p>
+            <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#7c5c3e;">Lokasi Ndalem Pleret</p>
             <p style="margin:0 0 12px;font-size:13px;color:#666;line-height:1.6;">
               Jl. Pleret Dalam IV No.6, Banyuanyar, Kec. Banjarsari<br/>Kota Surakarta, Jawa Tengah 57100
             </p>
@@ -403,7 +403,7 @@ export async function sendBookingConfirmation(data: {
   const { error } = await resend.emails.send({
     from: EMAIL_FROM,
     to: data.guestEmail,
-    subject: `Booking Dikonfirmasi! — Ndalem Pleret`,
+    subject: `Pesanan Dikonfirmasi — ${data.bookingRef} · Ndalem Pleret`,
     html: buildConfirmationHtml(data),
   });
   if (error) throw new Error(`Resend error: ${error.message}`);
