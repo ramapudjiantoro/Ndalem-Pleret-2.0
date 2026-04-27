@@ -380,12 +380,6 @@ export async function sendBookingReceived(data: {
     to: data.guestEmail,
     subject: `Pesanan Diterima — ${data.bookingRef} · Ndalem Pleret`,
     html: buildReceiptHtml(data),
-    headers: {
-      "X-Priority": "1",
-      "X-MSMail-Priority": "High",
-      "Importance": "high",
-      "Precedence": "personal",
-    },
   });
   if (error) throw new Error(`Resend error: ${error.message}`);
   console.log(`📧 Receipt email sent to ${data.guestEmail} [${data.bookingRef}]`);
@@ -411,12 +405,6 @@ export async function sendBookingConfirmation(data: {
     to: data.guestEmail,
     subject: `Pesanan Dikonfirmasi — ${data.bookingRef} · Ndalem Pleret`,
     html: buildConfirmationHtml(data),
-    headers: {
-      "X-Priority": "1",
-      "X-MSMail-Priority": "High",
-      "Importance": "high",
-      "Precedence": "personal",
-    },
   });
   if (error) throw new Error(`Resend error: ${error.message}`);
   console.log(`📧 Confirmation email sent to ${data.guestEmail} [${data.bookingRef}]`);
