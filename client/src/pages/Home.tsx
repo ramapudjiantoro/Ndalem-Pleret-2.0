@@ -100,9 +100,10 @@ export default function Home() {
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-10 font-light"
+            className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-10 font-light leading-relaxed"
           >
-            Satu rumah utuh untuk keluarga Anda. Privasi penuh, fasilitas lengkap, lokasi strategis dekat pusat kota Solo.
+            Private full-house dengan value terbaik di Solo.<br className="hidden sm:block" />
+            {" "}Privasi penuh, fasilitas lengkap, lokasi strategis di pusat kota Solo.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }}
