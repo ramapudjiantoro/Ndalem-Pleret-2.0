@@ -36,11 +36,11 @@ const FACILITIES = [
 ];
 
 const GALLERY_IMAGES = [
-  { src: heroImg,         alt: "Tampak Luar Ndalem Belakang" },
-  { src: tengahFrontImg,  alt: "Tampak Luar Ndalem Tengah" },
-  { src: livingRoomImg,   alt: "Ruang Keluarga" },
-  { src: tengahRuangImg,  alt: "Ruang Keluarga Ndalem Tengah" },
-  { src: viewSawahImg,    alt: "View Sawah" },
+  { src: heroImg,         alt: "Tampak Luar Ndalem Belakang — Guest House Solo" },
+  { src: tengahFrontImg,  alt: "Tampak Luar Ndalem Tengah — Villa Keluarga Solo" },
+  { src: livingRoomImg,   alt: "Ruang Keluarga Ndalem Pleret — Penginapan Private Solo" },
+  { src: tengahRuangImg,  alt: "Ruang Keluarga Ndalem Tengah — Sewa Villa Solo" },
+  { src: viewSawahImg,    alt: "View Sawah dari Ndalem Pleret Solo" },
 ];
 
 const UNIT_FEATURES = [
@@ -125,8 +125,16 @@ export default function Home() {
 
       {/* ── HERO ── */}
       <section id="hero" className="relative h-screen min-h-[600px] flex items-center justify-center overflow-hidden">
+        {/* SEO H1 — tersembunyi secara visual, terbaca crawler & screen reader */}
+        <h1 className="sr-only">
+          Guest House &amp; Penginapan Keluarga Private di Solo — Ndalem Pleret
+        </h1>
         <div className="absolute inset-0 z-0">
-          <img src={heroImg} alt="Eksterior Ndalem Pleret" className="w-full h-full object-cover" />
+          <img
+            src={heroImg}
+            alt="Ndalem Pleret — Guest House &amp; Villa Keluarga Private di Jl. Pleret Dalam, Banjarsari, Solo"
+            className="w-full h-full object-cover"
+          />
           <div className="absolute inset-0 bg-black/25" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
         </div>
@@ -138,12 +146,12 @@ export default function Home() {
           >
             ✦ SELAMAT DATANG DI SOLO
           </motion.span>
-          <motion.h1
+          <motion.h2
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }}
             className="text-5xl md:text-7xl font-display font-bold mb-6 leading-tight text-shadow"
           >
             Kediaman Hangat di<br />Jantung Solo
-          </motion.h1>
+          </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }}
             className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-10 font-light leading-relaxed"
@@ -272,10 +280,10 @@ export default function Home() {
                 className="space-y-5 text-muted-foreground"
               >
                 <p className="leading-relaxed">
-                  Ndalem Pleret bukan sekadar akomodasi — melainkan rumah yang siap menyambut kepulangan Anda di Surakarta. Kami menyediakan <strong className="text-foreground">dua unit rumah utuh</strong> yang dirancang khusus untuk memberikan kehangatan dan privasi maksimal bagi keluarga atau rombongan Anda.
+                  Ndalem Pleret bukan sekadar akomodasi — melainkan rumah yang siap menyambut kepulangan Anda di Surakarta. Sebagai <strong className="text-foreground">guest house &amp; villa keluarga private</strong> di Solo, kami menyediakan dua unit rumah utuh yang dirancang untuk memberikan kehangatan dan privasi maksimal bagi keluarga atau rombongan Anda.
                 </p>
                 <p className="leading-relaxed">
-                  Terletak di lokasi tenang namun strategis, homestay kami menjadi tempat perlindungan pribadi yang sempurna setelah seharian menjelajahi kekayaan budaya dan kuliner kota Solo.
+                  Terletak di lokasi tenang namun strategis di Banjarsari, Solo, <strong className="text-foreground">penginapan full house</strong> kami menjadi tempat berlindung yang sempurna setelah seharian menjelajahi kekayaan budaya, kuliner, dan destinasi wisata kota Solo.
                 </p>
                 <ul className="space-y-2.5">
                   {[
@@ -506,9 +514,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-start gap-8">
             <div>
-              <h2 className="text-2xl font-display font-bold mb-2">Ndalem Pleret</h2>
-              <p className="text-white/60 text-sm">Homestay Jawa Otentik di Solo</p>
-              <p className="text-white/40 text-xs mt-2">Jl. Pleret Dalam IV No.6, Surakarta</p>
+              <p className="text-2xl font-display font-bold mb-2">Ndalem Pleret</p>
+              <p className="text-white/60 text-sm">Guest House &amp; Villa Keluarga Private di Solo</p>
+              <p className="text-white/40 text-xs mt-2">Jl. Pleret Dalam IV No.6, Banjarsari, Surakarta 57100</p>
             </div>
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap gap-6">
