@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PriceDisplay } from "@/components/PriceDisplay";
 
 interface StickyBookingBarProps {
   onOpenBooking: () => void;
@@ -32,7 +33,10 @@ export function StickyBookingBar({ onOpenBooking }: StickyBookingBarProps) {
           <div className="bg-white dark:bg-card border-t border-border shadow-2xl px-4 py-3 flex items-center gap-3">
             <div className="flex-1">
               <p className="text-xs text-muted-foreground">Mulai dari</p>
-              <p className="font-bold text-primary text-base">Rp 600.000<span className="text-xs font-normal text-muted-foreground">/malam</span></p>
+              <div className="flex items-end gap-1">
+                <PriceDisplay currentPrice={600_000} size="sm" />
+                <span className="text-xs text-muted-foreground pb-0.5">/malam</span>
+              </div>
             </div>
             <Button
               onClick={onOpenBooking}

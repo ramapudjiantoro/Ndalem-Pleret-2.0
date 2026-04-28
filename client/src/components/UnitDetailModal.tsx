@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, BedDouble, Users, Wifi, Wind, Tv, ChefHat, Bath, Car, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatIDR } from "@/hooks/use-units";
+import { PriceDisplay } from "@/components/PriceDisplay";
 
 interface UnitDetail {
   id: number;
@@ -206,8 +207,8 @@ export function UnitDetailModal({ slug, onClose, onBook }: UnitDetailModalProps)
                   <p className="text-muted-foreground text-sm mt-0.5">{unit.tagline}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-2xl font-bold text-primary font-display">{formatIDR(unit.pricePerNight)}</div>
-                  <div className="text-xs text-muted-foreground">/malam</div>
+                  <PriceDisplay currentPrice={unit.pricePerNight} size="lg" className="text-right" />
+                  <div className="text-xs text-muted-foreground mt-0.5">/malam</div>
                 </div>
               </div>
 

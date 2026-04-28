@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUnits, formatIDR } from "@/hooks/use-units";
+import { PriceDisplay } from "@/components/PriceDisplay";
 import { useAvailability } from "@/hooks/use-availability";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -322,7 +323,10 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                             <span className="flex items-center gap-1"><BedDouble className="w-3.5 h-3.5" /> {unit.bedrooms} kamar</span>
                             <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> maks {unit.maxGuests} tamu</span>
                           </div>
-                          <div className="mt-2 font-bold text-primary text-sm">{formatIDR(unit.pricePerNight)}<span className="text-xs font-normal text-muted-foreground">/malam</span></div>
+                          <div className="mt-2 flex items-end gap-1">
+                            <PriceDisplay currentPrice={unit.pricePerNight} size="sm" />
+                            <span className="text-xs text-muted-foreground pb-0.5">/malam</span>
+                          </div>
                           {selectedUnitId === unit.id && (
                             <div className="absolute top-2 right-2 bg-primary rounded-full p-0.5"><Check className="w-3 h-3 text-white" /></div>
                           )}

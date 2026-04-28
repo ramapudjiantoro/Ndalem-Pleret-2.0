@@ -16,6 +16,7 @@ import { StickyBookingBar, FloatingBookingButton } from "@/components/StickyBook
 import { UnitDetailModal } from "@/components/UnitDetailModal";
 import { Button } from "@/components/ui/button";
 import { useUnits, formatIDR } from "@/hooks/use-units";
+import { PriceDisplay } from "@/components/PriceDisplay";
 
 // Real photos (served from public/)
 const heroImg         = "/belakang/tampak-luar.jpg";
@@ -333,9 +334,9 @@ export default function Home() {
                       ))}
                     </ul>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-white/15">
-                      <div>
-                        <span className="text-2xl font-bold text-white font-display">{formatIDR(u.price)}</span>
-                        <span className="text-white/60 text-sm">/malam</span>
+                      <div className="flex items-end gap-1.5">
+                        <PriceDisplay currentPrice={u.price} variant="dark" size="lg" />
+                        <span className="text-white/60 text-sm leading-none pb-1">/malam</span>
                       </div>
                       <div className="flex gap-2">
                         <Button variant="outline" onClick={(e) => { e.stopPropagation(); openDetail(u.index); }}
