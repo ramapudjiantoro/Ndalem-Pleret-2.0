@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion, useInView } from "framer-motion";
 import { Link } from "react-scroll";
 import {
   MapPin, Phone, Mail, BedDouble, Bath, ChefHat, Wifi, Tv, Wind,
@@ -54,6 +54,50 @@ const TRUST_STATS = [
   { icon: Award, value: "6+ Tahun", label: "Beroperasi" },
   { icon: Shield, value: "100%", label: "Privasi Terjaga" },
 ];
+
+// ── Count-up animation component ─────────────────────────────────────────────
+function CountUp({ value, delay = 0 }: { value: string; delay?: number }) {
+  // Split "500+" → target=500, suffix="+"  |  "4.9" → target=4.9, suffix=""
+  // "6+ Tahun" → target=6, suffix="+ Tahun"  |  "100%" → target=100, suffix="%"
+  const match = value.match(/^(\d+(?:\.\d+)?)(.*)/);
+  const target = match ? parseFloat(match[1]) : 0;
+  const suffix = match ? match[2] : value;
+  const isFloat = value.includes(".");
+
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-40px" });
+
+  useEffect(() => {
+    if (!inView) return;
+    const DURATION = 1600; // ms
+    const startDelay = delay * 1000;
+    let frameId: number;
+
+    const timer = setTimeout(() => {
+      const startTime = performance.now();
+      function step(now: number) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / DURATION, 1);
+        // Ease-out cubic: fast start, smooth landing
+        const eased = 1 - Math.pow(1 - progress, 3);
+        setCount(eased * target);
+        if (progress < 1) frameId = requestAnimationFrame(step);
+      }
+      frameId = requestAnimationFrame(step);
+    }, startDelay);
+
+    return () => { clearTimeout(timer); cancelAnimationFrame(frameId); };
+  }, [inView, target, delay]);
+
+  const display = isFloat ? count.toFixed(1) : Math.floor(count).toString();
+
+  return (
+    <div ref={ref} className="text-2xl font-bold font-display tabular-nums">
+      {display}{suffix}
+    </div>
+  );
+}
 
 const WHATSAPP_URL = "https://wa.me/6285121314631";
 
@@ -162,8 +206,8 @@ export default function Home() {
                 className="text-center"
               >
                 <div className="flex justify-center mb-2"><Icon className="w-5 h-5 text-white/70" /></div>
-                <div className="text-2xl font-bold font-display">{value}</div>
-                <div className="text-white/70 text-xs">{label}</div>
+                <CountUp value={value} delay={i * 0.12} />
+                <div className="text-white/70 text-xs mt-0.5">{label}</div>
               </motion.div>
             ))}
           </div>
