@@ -165,7 +165,7 @@ function useAdminNotifications(bookings: Booking[], token: string) {
 
   // Daftarkan push subscription saat hook pertama kali dipanggil (jika sudah granted)
   useEffect(() => {
-    if (Notification.permission === "granted") {
+    if ("Notification" in window && Notification.permission === "granted") {
       registerWebPush(token);
     }
   }, [token]);
