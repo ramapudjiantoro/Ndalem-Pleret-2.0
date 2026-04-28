@@ -175,7 +175,7 @@ function NotifPanel({
   onSimulate: (t: AdminNotif["type"]) => void; onClose: () => void;
 }) {
   return (
-    <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-card border border-border/50 rounded-2xl shadow-2xl z-50 overflow-hidden">
+    <div className="fixed left-2 right-2 top-[62px] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 bg-white dark:bg-card border border-border/50 rounded-2xl shadow-2xl z-50 overflow-hidden max-h-[calc(100vh-80px)] overflow-y-auto sm:max-h-none sm:overflow-visible">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-primary/5">
         <div className="flex items-center gap-2">
@@ -696,7 +696,7 @@ function DownloadPanel({ bookings, onClose }: { bookings: Booking[]; onClose: ()
       <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 bg-primary/5">
         <div className="flex items-center gap-2">
           <Download className="w-4 h-4 text-primary" />
-          <h3 className="font-bold text-sm">Unduh Data Booking</h3>
+          <h3 className="font-bold text-sm">Export Data Booking</h3>
         </div>
         <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
           <X className="w-4 h-4" />
@@ -803,7 +803,7 @@ function DownloadPanel({ bookings, onClose }: { bookings: Booking[]; onClose: ()
         >
           {loading
             ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Menyiapkan...</>
-            : <><Download className="w-4 h-4 mr-2" /> Unduh {filtered.length} Data ({format === "pdf" ? "PDF" : format.toUpperCase()})</>
+            : <><Download className="w-4 h-4 mr-2" /> Export {filtered.length} Data ({format === "pdf" ? "PDF" : format.toUpperCase()})</>
           }
         </Button>
       </div>
@@ -1278,14 +1278,14 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
               <RefreshCw className={`w-3.5 h-3.5 mr-1 transition-transform ${isRefreshing ? "animate-spin" : ""}`} />
               {isRefreshing ? "Memuat..." : "Refresh"}
             </Button>
-            <Button size="sm" variant="outline" onClick={onLogout} className="rounded-lg h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/30">
+            <Button size="sm" variant="outline" onClick={onLogout} className="hidden md:flex rounded-lg h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/30">
               <LogOut className="w-3.5 h-3.5 mr-1" /> Keluar
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-5xl mx-auto px-4 py-6 pb-20 md:pb-6 space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
@@ -1338,10 +1338,10 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
               ))}
               <button
                 onClick={() => setShowDownload((v) => !v)}
-                className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${showDownload ? "bg-primary text-white border-primary" : "bg-white dark:bg-muted border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}
+                className={`ml-auto hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${showDownload ? "bg-primary text-white border-primary" : "bg-white dark:bg-muted border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}
               >
                 <Download className="w-3.5 h-3.5" />
-                Unduh Data
+                Export Data
               </button>
             </div>
 
@@ -1565,6 +1565,25 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
           </div>
         )}
       </div>
+
+      {/* ── Mobile fixed action buttons ─────────────────────────────────────── */}
+      {/* Keluar — bottom-left, mobile only */}
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={onLogout}
+        className="fixed bottom-4 left-4 z-30 md:hidden flex items-center gap-1.5 rounded-full h-10 px-4 text-xs font-semibold text-red-600 border-red-200 bg-white dark:bg-card dark:border-red-800 shadow-lg hover:bg-red-50 dark:hover:bg-red-900/30"
+      >
+        <LogOut className="w-3.5 h-3.5" /> Keluar
+      </Button>
+
+      {/* Export Data — bottom-right, mobile only */}
+      <button
+        onClick={() => { setActiveTab("bookings"); setShowDownload((v) => !v); }}
+        className={`fixed bottom-4 right-4 z-30 md:hidden flex items-center gap-1.5 rounded-full h-10 px-4 text-xs font-semibold border shadow-lg transition-all ${showDownload ? "bg-primary text-white border-primary" : "bg-white dark:bg-card border-border text-foreground hover:bg-muted"}`}
+      >
+        <Download className="w-3.5 h-3.5" /> Export Data
+      </button>
     </div>
   );
 }
