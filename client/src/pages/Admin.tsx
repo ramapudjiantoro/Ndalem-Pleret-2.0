@@ -4,6 +4,7 @@ import {
   Lock, LogOut, RefreshCw, Check, X, Banknote, Calendar, User,
   Phone, Mail, BedDouble, ChevronDown, ChevronUp, Plus, Trash2,
   AlertTriangle, Eye, EyeOff, ChevronLeft, ChevronRight,
+  StickyNote, Pencil,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ interface Booking {
   id: number; bookingRef: string; unitId: number; unitName: string;
   guestName: string; guestPhone: string; guestEmail: string;
   checkIn: string; checkOut: string; nights: number; totalPrice: number;
-  status: string; paymentStatus: string; guestCount: number; notes?: string;
+  status: string; paymentStatus: string; guestCount: number; notes?: string; adminNotes?: string;
   createdAt: string;
 }
 interface BlockedDate { id: number; unitId: number; date: string; reason?: string; }
@@ -113,6 +114,8 @@ function BookingRow({ booking, token, onRefresh }: { booking: Booking; token: st
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState(booking.adminNotes ?? "");
 
   async function update(field: "status" | "paymentStatus", value: string) {
     setLoading(true);
@@ -122,6 +125,18 @@ function BookingRow({ booking, token, onRefresh }: { booking: Booking; token: st
       body: JSON.stringify({ [field]: value }),
     });
     setLoading(false);
+    onRefresh();
+  }
+
+  async function saveAdminNotes() {
+    setLoading(true);
+    await fetch(`/api/admin/bookings/${booking.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "x-admin-token": token },
+      body: JSON.stringify({ adminNotes: notesDraft }),
+    });
+    setLoading(false);
+    setEditingNotes(false);
     onRefresh();
   }
 
@@ -171,6 +186,51 @@ function BookingRow({ booking, token, onRefresh }: { booking: Booking; token: st
             <div className="flex items-center gap-2"><BedDouble className="w-4 h-4 text-muted-foreground" /><span>{booking.unitName}</span></div>
           </div>
           {booking.notes && <p className="text-xs text-muted-foreground bg-secondary/50 p-3 rounded-lg">📝 {booking.notes}</p>}
+
+          {/* ── Admin Notes ── */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <StickyNote className="w-3.5 h-3.5" /> Catatan Admin
+              </span>
+              {!editingNotes && (
+                <button
+                  onClick={() => { setNotesDraft(booking.adminNotes ?? ""); setEditingNotes(true); }}
+                  className="text-xs text-primary hover:underline flex items-center gap-1 transition-colors"
+                >
+                  <Pencil className="w-3 h-3" />
+                  {booking.adminNotes ? "Edit" : "Tambah Catatan"}
+                </button>
+              )}
+            </div>
+
+            {editingNotes ? (
+              <div className="space-y-2">
+                <textarea
+                  className="w-full text-xs border border-input rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                  rows={3}
+                  placeholder="Tulis catatan internal untuk booking ini..."
+                  value={notesDraft}
+                  onChange={(e) => setNotesDraft(e.target.value)}
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" className="h-7 text-xs rounded-lg" onClick={saveAdminNotes} disabled={loading}>
+                    <Check className="w-3 h-3 mr-1" /> Simpan
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs rounded-lg text-muted-foreground" onClick={() => setEditingNotes(false)} disabled={loading}>
+                    Batal
+                  </Button>
+                </div>
+              </div>
+            ) : booking.adminNotes ? (
+              <p className="text-xs text-foreground bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 p-3 rounded-lg whitespace-pre-wrap">
+                {booking.adminNotes}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground/50 italic">Belum ada catatan admin</p>
+            )}
+          </div>
 
           <div className="flex flex-wrap gap-2">
             {booking.status === "pending" && (

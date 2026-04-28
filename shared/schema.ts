@@ -54,6 +54,7 @@ export const bookings = pgTable("bookings", {
   paymentStatus: text("payment_status").notNull().default("pending"), // pending | paid
   guestCount: integer("guest_count").notNull().default(1),
   notes: text("notes"),
+  adminNotes: text("admin_notes"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

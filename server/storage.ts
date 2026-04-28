@@ -82,6 +82,7 @@ export interface IStorage {
   listBookings(): Promise<(Booking & { unitName: string })[]>;
   updateBookingStatus(id: number, status: string): Promise<Booking | undefined>;
   updatePaymentStatus(id: number, paymentStatus: string): Promise<Booking | undefined>;
+  updateAdminNotes(id: number, adminNotes: string): Promise<Booking | undefined>;
   deleteBooking(id: number): Promise<{ bookingRef: string } | undefined>;
 
   // Blocked Dates
@@ -273,6 +274,7 @@ export class DatabaseStorage implements IStorage {
         paymentStatus: bookings.paymentStatus,
         guestCount: bookings.guestCount,
         notes: bookings.notes,
+        adminNotes: bookings.adminNotes,
         createdAt: bookings.createdAt,
         unitName: units.name,
       })
@@ -299,6 +301,15 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db
       .update(bookings)
       .set({ paymentStatus })
+      .where(eq(bookings.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateAdminNotes(id: number, adminNotes: string): Promise<Booking | undefined> {
+    const [updated] = await db
+      .update(bookings)
+      .set({ adminNotes })
       .where(eq(bookings.id, id))
       .returning();
     return updated;

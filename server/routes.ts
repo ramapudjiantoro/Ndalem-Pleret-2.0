@@ -199,7 +199,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // ── Admin: Update Booking ──────────────────────────────────────────────────
   app.patch("/api/admin/bookings/:id", adminAuth, async (req, res) => {
     const id = parseInt(req.params.id, 10);
-    const { status, paymentStatus } = req.body as { status?: string; paymentStatus?: string };
+    const { status, paymentStatus, adminNotes } = req.body as { status?: string; paymentStatus?: string; adminNotes?: string };
 
     let updated;
     if (status) {
@@ -207,6 +207,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
     if (paymentStatus) {
       updated = await storage.updatePaymentStatus(id, paymentStatus);
+    }
+    if (adminNotes !== undefined) {
+      updated = await storage.updateAdminNotes(id, adminNotes);
     }
     if (!updated) {
       return res.status(404).json({ message: "Booking tidak ditemukan" });
