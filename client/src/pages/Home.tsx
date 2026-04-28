@@ -156,8 +156,8 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }}
             className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-10 font-light leading-relaxed"
           >
-            Private full-house dengan value terbaik di Solo.<br className="hidden sm:block" />
-            {" "}Privasi penuh, fasilitas lengkap, lokasi strategis di pusat kota Solo.
+            Sewa guest house &amp; villa keluarga private full-house di Solo.<br className="hidden sm:block" />
+            {" "}Privasi 100%, fasilitas lengkap, lokasi strategis dekat Keraton &amp; Stasiun Balapan.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }}
@@ -283,14 +283,17 @@ export default function Home() {
                   Ndalem Pleret bukan sekadar akomodasi — melainkan rumah yang siap menyambut kepulangan Anda di Surakarta. Sebagai <strong className="text-foreground">guest house &amp; villa keluarga private</strong> di Solo, kami menyediakan dua unit rumah utuh yang dirancang untuk memberikan kehangatan dan privasi maksimal bagi keluarga atau rombongan Anda.
                 </p>
                 <p className="leading-relaxed">
-                  Terletak di lokasi tenang namun strategis di Banjarsari, Solo, <strong className="text-foreground">penginapan full house</strong> kami menjadi tempat berlindung yang sempurna setelah seharian menjelajahi kekayaan budaya, kuliner, dan destinasi wisata kota Solo.
+                  Terletak di lokasi tenang namun strategis di Banjarsari, Solo, <strong className="text-foreground">penginapan full house</strong> kami menjadi tempat berlindung yang sempurna setelah seharian menjelajahi kekayaan budaya, kuliner, dan destinasi wisata Kota Solo — dari Keraton Surakarta, Pasar Gede, Kampung Batik Laweyan, hingga Taman Sriwedari.
+                </p>
+                <p className="leading-relaxed">
+                  Berbeda dengan hotel konvensional, di Ndalem Pleret Anda mendapatkan <strong className="text-foreground">seluruh rumah eksklusif untuk grup Anda sendiri</strong>. Cocok untuk liburan keluarga, arisan, reuni sekolah, staycation, maupun kunjungan bisnis ke Solo atau Surakarta.
                 </p>
                 <ul className="space-y-2.5">
                   {[
-                    "Dua unit rumah utuh — privasi penuh untuk grup Anda",
-                    "Lokasi strategis, dekat Pasar Gede & Keraton Solo",
-                    "Ideal untuk keluarga besar, arisan, atau reuni",
-                    "Lingkungan bersih, aman, dan tenang 24 jam",
+                    "2 unit rumah utuh — privasi penuh, tidak berbagi dengan tamu lain",
+                    "Lokasi strategis ±10 menit dari Keraton Solo & Pasar Gede",
+                    "Ideal untuk keluarga, arisan, reuni, hingga rombongan bisnis",
+                    "Lingkungan perumahan bersih, aman, dan tenang 24 jam",
                   ].map((item, i) => (
                     <li key={i} className="flex items-center gap-3 text-foreground font-medium text-sm">
                       <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs shrink-0">✓</div>
@@ -408,6 +411,67 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── IDEAL FOR / USE CASES ── */}
+      <section className="py-20 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionHeading
+            title="Cocok untuk Berbagai Kebutuhan"
+            subtitle="Siapa yang Menginap di Ndalem Pleret?"
+          />
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-12">
+            {[
+              { emoji: "👨‍👩‍👧‍👦", label: "Liburan Keluarga", desc: "Privasi penuh untuk quality time" },
+              { emoji: "🎉", label: "Arisan & Reuni", desc: "Ruang luas, dapur lengkap" },
+              { emoji: "🎂", label: "Staycation", desc: "Rayakan momen spesial bersama" },
+              { emoji: "💼", label: "Kunjungan Bisnis", desc: "Nyaman, tenang, produktif" },
+              { emoji: "🏫", label: "Reuni Sekolah", desc: "Kapasitas hingga 12 orang" },
+              { emoji: "🕌", label: "Wisata Religi", desc: "Dekat destinasi budaya Solo" },
+            ].map((item) => (
+              <motion.div
+                key={item.label}
+                initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }} transition={{ duration: 0.5 }}
+                className="bg-secondary/40 hover:bg-primary/10 transition-colors rounded-2xl p-5 text-center border border-border/40"
+              >
+                <div className="text-3xl mb-3">{item.emoji}</div>
+                <p className="font-bold text-sm font-display mb-1">{item.label}</p>
+                <p className="text-xs text-muted-foreground">{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Proximity to landmarks — targets "penginapan dekat X solo" queries */}
+          <div className="bg-primary/5 border border-primary/15 rounded-2xl p-8">
+            <h3 className="text-xl font-bold font-display mb-2 text-center">
+              Lokasi Strategis di Tengah Kota Solo
+            </h3>
+            <p className="text-muted-foreground text-sm text-center mb-8 max-w-xl mx-auto">
+              Ndalem Pleret berada di Banjarsari, Surakarta — kawasan perumahan tenang yang mudah dijangkau dari seluruh penjuru Solo. Dekat semua destinasi wisata &amp; kuliner favorit Kota Solo.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {[
+                { name: "Stasiun Solo Balapan", dist: "±2 km", time: "±7 menit" },
+                { name: "Keraton Surakarta", dist: "±4 km", time: "±12 menit" },
+                { name: "Pasar Gede Solo", dist: "±4 km", time: "±12 menit" },
+                { name: "Kampung Batik Laweyan", dist: "±4 km", time: "±12 menit" },
+                { name: "Taman Sriwedari", dist: "±3 km", time: "±10 menit" },
+                { name: "Solo Paragon Mall", dist: "±3 km", time: "±10 menit" },
+                { name: "Pasar Triwindu (Pasar Antik)", dist: "±2 km", time: "±8 menit" },
+                { name: "Bandara Adi Soemarmo", dist: "±10 km", time: "±25 menit" },
+              ].map((place) => (
+                <div key={place.name} className="flex items-start gap-3 bg-white dark:bg-card rounded-xl p-4 border border-border/40">
+                  <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold leading-tight">{place.name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{place.dist} · {place.time}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── GALLERY ── */}
       <section id="gallery" className="py-24 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -441,7 +505,10 @@ export default function Home() {
       {/* ── LOCATION & CONTACT ── */}
       <section id="location" className="py-24 bg-secondary/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionHeading title="Kunjungi Kami" subtitle="Lokasi & Kontak" />
+          <SectionHeading
+            title="Kunjungi Kami di Banjarsari, Solo"
+            subtitle="Lokasi & Kontak — Ndalem Pleret Surakarta"
+          />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <motion.div
               initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }}
