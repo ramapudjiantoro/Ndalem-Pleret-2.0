@@ -3,7 +3,7 @@ import { Resend } from "resend";
 // ─── Config ───────────────────────────────────────────────────────────────────
 // Resend uses HTTPS (port 443) — tidak diblokir Railway seperti SMTP (587/465)
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const EMAIL_FROM = "Ndalem Pleret <reservasi@ndalempleret.com>";
+const EMAIL_FROM = "Ndalem Pleret <cs@ndalempleret.com>";
 
 console.log(`📧 Email config: RESEND_API_KEY=${RESEND_API_KEY ? "set" : "NOT SET ❌"}`);
 
