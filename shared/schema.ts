@@ -88,3 +88,11 @@ export const insertBlockedDateSchema = createInsertSchema(blockedDates).omit({
 
 export type BlockedDate = typeof blockedDates.$inferSelect;
 export type InsertBlockedDate = z.infer<typeof insertBlockedDateSchema>;
+
+// ─── ADMIN CONFIG ─────────────────────────────────────────────────────────────
+// Stores runtime admin settings (e.g., custom password override)
+export const adminConfig = pgTable("admin_config", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});

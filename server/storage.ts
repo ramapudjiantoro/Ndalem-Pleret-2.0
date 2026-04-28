@@ -19,7 +19,7 @@ const db = new Proxy({} as NonNullable<typeof rawDb>, {
   },
 });
 import {
-  inquiries, units, bookings, blockedDates,
+  inquiries, units, bookings, blockedDates, adminConfig,
   type InsertInquiry, type Inquiry,
   type Unit,
   type Booking,
@@ -89,6 +89,10 @@ export interface IStorage {
   // Helpers
   getBookingById(id: number): Promise<Booking | undefined>;
   isDateRangeAvailableExcluding(unitId: number, checkIn: string, checkOut: string, excludeBookingId: number): Promise<boolean>;
+
+  // Admin password management
+  getAdminPassword(): Promise<string>;
+  setAdminPassword(newPassword: string): Promise<void>;
 
   // Blocked Dates
   blockDate(unitId: number, date: string, reason?: string): Promise<BlockedDate>;
@@ -373,6 +377,28 @@ export class DatabaseStorage implements IStorage {
       .where(eq(bookings.id, id))
       .returning({ bookingRef: bookings.bookingRef });
     return deleted;
+  }
+
+  // ── Admin Password ─────────────────────────────────────────────────────────
+  async getAdminPassword(): Promise<string> {
+    try {
+      const [row] = await db
+        .select({ value: adminConfig.value })
+        .from(adminConfig)
+        .where(eq(adminConfig.key, "admin_password"));
+      if (row?.value) return row.value;
+    } catch { /* table may not exist yet — fall through to env var */ }
+    return process.env.ADMIN_PASSWORD ?? "ndalem2025";
+  }
+
+  async setAdminPassword(newPassword: string): Promise<void> {
+    await db
+      .insert(adminConfig)
+      .values({ key: "admin_password", value: newPassword })
+      .onConflictDoUpdate({
+        target: adminConfig.key,
+        set: { value: newPassword, updatedAt: new Date() },
+      });
   }
 
   // ── Blocked Dates ──────────────────────────────────────────────────────────

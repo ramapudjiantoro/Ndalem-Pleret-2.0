@@ -7,14 +7,18 @@ import { createBookingCalendarEvents, deleteBookingCalendarEvents } from "./cale
 import { z } from "zod";
 
 // ─── Simple admin auth middleware ─────────────────────────────────────────────
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "ndalem2025";
+const ADMIN_PASSWORD_ENV = process.env.ADMIN_PASSWORD || "ndalem2025";
 
-function adminAuth(req: any, res: any, next: any) {
+async function adminAuth(req: any, res: any, next: any) {
   const token = req.headers["x-admin-token"] as string | undefined;
-  if (!token || token !== ADMIN_PASSWORD) {
-    return res.status(401).json({ message: "Unauthorized" });
+  if (!token) return res.status(401).json({ message: "Unauthorized" });
+  try {
+    const activePassword = await storage.getAdminPassword();
+    if (token !== activePassword) return res.status(401).json({ message: "Unauthorized" });
+    next();
+  } catch {
+    res.status(500).json({ message: "Auth error" });
   }
-  next();
 }
 
 // ─── Night calculation helper ─────────────────────────────────────────────────
@@ -184,10 +188,46 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // ── Admin: Login ───────────────────────────────────────────────────────────
   app.post("/api/admin/login", async (req, res) => {
     const { password } = req.body as { password?: string };
-    if (!password || password !== ADMIN_PASSWORD) {
+    if (!password) return res.status(400).json({ message: "Password diperlukan" });
+    const activePassword = await storage.getAdminPassword();
+    if (password !== activePassword) {
       return res.status(401).json({ message: "Password salah" });
     }
-    res.json({ token: ADMIN_PASSWORD });
+    res.json({ token: activePassword });
+  });
+
+  // ── Admin: Reset Password (lupa password — pakai master key dari env) ──────
+  app.post("/api/admin/reset-password", async (req, res) => {
+    const { masterKey, newPassword } = req.body as { masterKey?: string; newPassword?: string };
+    if (!masterKey || !newPassword) {
+      return res.status(400).json({ message: "masterKey dan newPassword diperlukan" });
+    }
+    // Master key SELALU env var ADMIN_PASSWORD — tidak bisa diubah lewat DB
+    if (masterKey !== ADMIN_PASSWORD_ENV) {
+      return res.status(401).json({ message: "Master key salah" });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password baru minimal 6 karakter" });
+    }
+    await storage.setAdminPassword(newPassword);
+    res.json({ ok: true, token: newPassword });
+  });
+
+  // ── Admin: Change Password (sudah login, tahu password lama) ──────────────
+  app.post("/api/admin/change-password", adminAuth, async (req, res) => {
+    const { currentPassword, newPassword } = req.body as { currentPassword?: string; newPassword?: string };
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "currentPassword dan newPassword diperlukan" });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password baru minimal 6 karakter" });
+    }
+    const activePassword = await storage.getAdminPassword();
+    if (currentPassword !== activePassword) {
+      return res.status(401).json({ message: "Password saat ini salah" });
+    }
+    await storage.setAdminPassword(newPassword);
+    res.json({ ok: true });
   });
 
   // ── Admin: List Bookings ───────────────────────────────────────────────────

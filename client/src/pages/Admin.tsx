@@ -5,7 +5,7 @@ import {
   Phone, Mail, BedDouble, ChevronDown, ChevronUp, Plus, Trash2,
   AlertTriangle, Eye, EyeOff, ChevronLeft, ChevronRight,
   StickyNote, Pencil, Download, FileText, FileSpreadsheet, Printer, Filter,
-  Bell, BellRing,
+  Bell, BellRing, KeyRound,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -316,16 +316,46 @@ function NotifPanel({
   );
 }
 
+// ─── Password input helper ────────────────────────────────────────────────────
+function PasswordInput({ value, onChange, placeholder, autoFocus, id }: {
+  value: string; onChange: (v: string) => void;
+  placeholder?: string; autoFocus?: boolean; id?: string;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="relative">
+      <Input id={id} type={show ? "text" : "password"} className="pr-10"
+        placeholder={placeholder} value={value}
+        onChange={(e) => onChange(e.target.value)} autoFocus={autoFocus} />
+      <button type="button" tabIndex={-1} onClick={() => setShow((v) => !v)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+        {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
+    </div>
+  );
+}
+
 // ─── Login Screen ─────────────────────────────────────────────────────────────
-function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
+function LoginScreen({ onLogin }: { onLogin: (token: string, remember: boolean) => void }) {
+  const [mode, setMode] = useState<"login" | "reset">("login");
+
+  // Login state
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [remember, setRemember] = useState(true);
+  const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  // Reset password state
+  const [masterKey, setMasterKey] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [resetError, setResetError] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true); setError("");
+    setLoginLoading(true); setLoginError("");
     try {
       const res = await fetch("/api/admin/login", {
         method: "POST",
@@ -333,8 +363,192 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
         body: JSON.stringify({ password }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.message || "Password salah"); return; }
-      onLogin(data.token);
+      if (!res.ok) { setLoginError(data.message || "Password salah"); return; }
+      onLogin(data.token, remember);
+    } catch {
+      setLoginError("Koneksi gagal");
+    } finally {
+      setLoginLoading(false);
+    }
+  }
+
+  async function handleReset(e: React.FormEvent) {
+    e.preventDefault();
+    setResetError("");
+    if (newPw.length < 6) { setResetError("Password baru minimal 6 karakter"); return; }
+    if (newPw !== confirmPw) { setResetError("Konfirmasi password tidak cocok"); return; }
+    setResetLoading(true);
+    try {
+      const res = await fetch("/api/admin/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ masterKey, newPassword: newPw }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setResetError(data.message || "Gagal mereset password"); return; }
+      setResetSuccess(true);
+    } catch {
+      setResetError("Koneksi gagal");
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-secondary/30 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-card rounded-2xl shadow-xl border border-border/50 p-8 w-full max-w-sm">
+
+        {/* Header */}
+        <div className="text-center mb-6">
+          <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 transition-colors
+            ${mode === "reset" ? "bg-amber-100 dark:bg-amber-900/30" : "bg-primary/10"}`}>
+            {mode === "reset"
+              ? <KeyRound className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+              : <Lock className="w-7 h-7 text-primary" />}
+          </div>
+          <h1 className="text-2xl font-bold font-display">
+            {mode === "reset" ? "Reset Password" : "Admin Panel"}
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">Ndalem Pleret Guest House</p>
+        </div>
+
+        {/* ── Login Mode ── */}
+        {mode === "login" && (
+          <>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <Label htmlFor="password" className="text-sm mb-1 block">Password Admin</Label>
+                <PasswordInput id="password" value={password} onChange={setPassword}
+                  placeholder="Masukkan password" autoFocus />
+              </div>
+
+              {/* Remember me */}
+              <label className="flex items-center gap-2.5 cursor-pointer select-none group">
+                <div
+                  onClick={() => setRemember((v) => !v)}
+                  className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors shrink-0
+                    ${remember ? "bg-primary border-primary" : "border-border group-hover:border-primary/50"}`}
+                >
+                  {remember && <Check className="w-2.5 h-2.5 text-white" />}
+                </div>
+                <span className="text-sm text-muted-foreground">Ingat saya selama 30 hari</span>
+              </label>
+
+              {loginError && (
+                <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/30 p-3 rounded-lg">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />{loginError}
+                </div>
+              )}
+              <Button type="submit" className="w-full h-11" disabled={loginLoading}>
+                {loginLoading ? "Memproses..." : "Masuk"}
+              </Button>
+            </form>
+
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => { setMode("reset"); setLoginError(""); }}
+                className="text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-2"
+              >
+                Lupa password? Reset di sini
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ── Reset Mode ── */}
+        {mode === "reset" && (
+          <>
+            {resetSuccess ? (
+              <div className="text-center space-y-4 py-2">
+                <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto">
+                  <Check className="w-6 h-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="font-semibold text-green-700 dark:text-green-400">Password berhasil direset!</p>
+                  <p className="text-sm text-muted-foreground mt-1">Silakan login dengan password baru Anda.</p>
+                </div>
+                <Button className="w-full h-10" onClick={() => { setMode("login"); setResetSuccess(false); setMasterKey(""); setNewPw(""); setConfirmPw(""); }}>
+                  Kembali ke Login
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-lg px-4 py-3 mb-4">
+                  <p className="text-xs text-amber-800 dark:text-amber-300 leading-snug">
+                    Masukkan <strong>Master Key</strong> — yaitu password default bawaan Railway (dari env var <code className="bg-amber-100 dark:bg-amber-800/50 px-1 rounded">ADMIN_PASSWORD</code>). Master key ini selalu berfungsi meskipun kamu sudah mengganti password.
+                  </p>
+                </div>
+                <form onSubmit={handleReset} className="space-y-3">
+                  <div>
+                    <Label className="text-xs mb-1 block">Master Key</Label>
+                    <PasswordInput value={masterKey} onChange={setMasterKey} placeholder="Password default Railway" autoFocus />
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1 block">Password Baru</Label>
+                    <PasswordInput value={newPw} onChange={setNewPw} placeholder="Minimal 6 karakter" />
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1 block">Konfirmasi Password Baru</Label>
+                    <PasswordInput value={confirmPw} onChange={setConfirmPw} placeholder="Ulangi password baru" />
+                    {confirmPw && newPw !== confirmPw && (
+                      <p className="text-xs text-red-500 mt-1">Password tidak cocok</p>
+                    )}
+                  </div>
+                  {resetError && (
+                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/30 p-3 rounded-lg">
+                      <AlertTriangle className="w-4 h-4 shrink-0" />{resetError}
+                    </div>
+                  )}
+                  <Button type="submit" className="w-full h-10"
+                    disabled={resetLoading || !masterKey || !newPw || newPw !== confirmPw}>
+                    {resetLoading ? "Mereset..." : "Reset Password"}
+                  </Button>
+                </form>
+                <div className="mt-3 text-center">
+                  <button onClick={() => { setMode("login"); setResetError(""); }}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    ← Kembali ke login
+                  </button>
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Change Password Modal ────────────────────────────────────────────────────
+function ChangePasswordModal({ token, onClose, onSuccess }: {
+  token: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (newPw.length < 6) { setError("Password baru minimal 6 karakter"); return; }
+    if (newPw !== confirmPw) { setError("Konfirmasi password tidak cocok"); return; }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-token": token },
+        body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.message || "Gagal mengubah password"); return; }
+      setSuccess(true);
+      // Token lama (= password lama) sudah tidak valid — logout setelah 3 detik
+      setTimeout(onSuccess, 3000);
     } catch {
       setError("Koneksi gagal");
     } finally {
@@ -343,43 +557,69 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
   }
 
   return (
-    <div className="min-h-screen bg-secondary/30 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-card rounded-2xl shadow-xl border border-border/50 p-8 w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Lock className="w-7 h-7 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold font-display">Admin Panel</h1>
-          <p className="text-muted-foreground text-sm mt-1">Ndalem Pleret Guest House</p>
-        </div>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <Label htmlFor="password">Password Admin</Label>
-            <div className="relative mt-1">
-              <Input id="password" type={showPassword ? "text" : "password"} className="pr-10" placeholder="Masukkan password"
-                value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                tabIndex={-1}
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-card rounded-2xl shadow-2xl border border-border/50 p-6 w-full max-w-sm"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+              <KeyRound className="w-4 h-4 text-primary" />
             </div>
+            <h2 className="font-bold">Ganti Password</h2>
           </div>
-          {error && (
-            <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/30 p-3 rounded-lg">
-              <AlertTriangle className="w-4 h-4" />{error}
-            </div>
+          {!success && (
+            <button onClick={onClose} className="p-1 rounded-lg hover:bg-muted text-muted-foreground">
+              <X className="w-4 h-4" />
+            </button>
           )}
-          <Button type="submit" className="w-full h-11" disabled={loading}>
-            {loading ? "Memproses..." : "Masuk"}
-          </Button>
-        </form>
-        <p className="text-xs text-center text-muted-foreground mt-4">
-          Default: <code className="bg-muted px-1 rounded">ndalem2025</code> · Ubah via env <code className="bg-muted px-1 rounded">ADMIN_PASSWORD</code>
-        </p>
+        </div>
+
+        {success ? (
+          <div className="text-center py-4 space-y-3">
+            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto">
+              <Check className="w-6 h-6 text-green-600 dark:text-green-400" />
+            </div>
+            <p className="font-semibold text-green-700 dark:text-green-400">Password berhasil diubah!</p>
+            <p className="text-sm text-muted-foreground">Anda akan dikeluarkan dan perlu login ulang dengan password baru...</p>
+            <div className="flex justify-center">
+              <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label className="text-xs mb-1 block">Password Saat Ini</Label>
+              <PasswordInput value={currentPw} onChange={setCurrentPw}
+                placeholder="Password yang sedang digunakan" autoFocus />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">Password Baru</Label>
+              <PasswordInput value={newPw} onChange={setNewPw} placeholder="Minimal 6 karakter" />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">Konfirmasi Password Baru</Label>
+              <PasswordInput value={confirmPw} onChange={setConfirmPw} placeholder="Ulangi password baru" />
+              {confirmPw && newPw !== confirmPw && (
+                <p className="text-xs text-red-500 mt-1">Password tidak cocok</p>
+              )}
+            </div>
+            {error && (
+              <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/30 p-3 rounded-lg">
+                <AlertTriangle className="w-4 h-4 shrink-0" />{error}
+              </div>
+            )}
+            <Button type="submit" className="w-full h-10"
+              disabled={loading || !currentPw || !newPw || newPw !== confirmPw}>
+              {loading ? "Menyimpan..." : "Simpan Password Baru"}
+            </Button>
+          </form>
+        )}
       </div>
     </div>
   );
@@ -1314,6 +1554,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
   const [statusFilter, setStatusFilter] = useState("all");
   const [showDownload, setShowDownload] = useState(false);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
   // ── Kosongkan Tanggal state ──
@@ -1494,6 +1735,15 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
                 />
               )}
             </div>
+
+            {/* Ganti Password */}
+            <button
+              onClick={() => setShowChangePassword(true)}
+              className="h-8 w-8 flex items-center justify-center rounded-lg border border-border bg-white dark:bg-card hover:bg-muted text-foreground transition-colors"
+              title="Ganti Password"
+            >
+              <KeyRound className="w-4 h-4" />
+            </button>
 
             <Button size="sm" variant="outline" onClick={handleRefresh} disabled={isRefreshing} className="rounded-lg h-8 text-xs">
               <RefreshCw className={`w-3.5 h-3.5 mr-1 transition-transform ${isRefreshing ? "animate-spin" : ""}`} />
@@ -1805,22 +2055,58 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
       >
         <Download className="w-3.5 h-3.5" /> Export Data
       </button>
+
+      {/* Change Password Modal */}
+      {showChangePassword && (
+        <ChangePasswordModal
+          token={token}
+          onClose={() => setShowChangePassword(false)}
+          onSuccess={() => {
+            setShowChangePassword(false);
+            onLogout();
+          }}
+        />
+      )}
     </div>
   );
 }
 
-// ─── Root: handles auth gate ───────────────────────────────────────────────────
-export default function Admin() {
-  const [token, setToken] = useState<string | null>(() => sessionStorage.getItem("admin_token"));
+// ─── Root: handles auth gate + persistent session ─────────────────────────────
+const LS_ADMIN_SESSION = "np_admin_session";
 
-  function handleLogin(t: string) {
+function getPersistedToken(): string | null {
+  // Cek localStorage dulu (remember me, 30 hari)
+  try {
+    const raw = localStorage.getItem(LS_ADMIN_SESSION);
+    if (raw) {
+      const { token, expiresAt } = JSON.parse(raw) as { token: string; expiresAt: number };
+      if (Date.now() < expiresAt) return token;
+      localStorage.removeItem(LS_ADMIN_SESSION); // expired
+    }
+  } catch {}
+  // Fallback ke sessionStorage (tanpa remember me — hilang saat tab ditutup)
+  return sessionStorage.getItem(LS_ADMIN_SESSION);
+}
+
+export default function Admin() {
+  const [token, setToken] = useState<string | null>(getPersistedToken);
+
+  function handleLogin(t: string, remember: boolean) {
     setToken(t);
-    sessionStorage.setItem("admin_token", t);
+    if (remember) {
+      localStorage.setItem(LS_ADMIN_SESSION, JSON.stringify({
+        token: t,
+        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 hari
+      }));
+    } else {
+      sessionStorage.setItem(LS_ADMIN_SESSION, t);
+    }
   }
 
   function handleLogout() {
     setToken(null);
-    sessionStorage.removeItem("admin_token");
+    localStorage.removeItem(LS_ADMIN_SESSION);
+    sessionStorage.removeItem(LS_ADMIN_SESSION);
   }
 
   if (!token) {
