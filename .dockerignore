@@ -1,0 +1,26 @@
+# Git history (tidak perlu di image)
+.git
+.gitignore
+
+# Editor configs
+.vscode
+.idea
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+docs
+
+# Test & coverage
+coverage
+
+# Local env overrides (Railway inject via env vars)
+.env.local
+.env.*.local
+
+# Drizzle generated migrations (schema sudah di-push ke DB)
+drizzle
