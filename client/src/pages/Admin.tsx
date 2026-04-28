@@ -57,12 +57,40 @@ const NOTIF_ICON: Record<AdminNotif["type"], string> = {
 };
 
 // ─── useAdminNotifications ────────────────────────────────────────────────────
+const LS_SEEN   = "np_admin_seen_ids";   // persisted booking IDs already notified
+const LS_KEYS   = "np_admin_notif_keys"; // { date, keys[] } — daily checkin/checkout dedup
+
+function readSeenIds(): Set<number> {
+  try {
+    const raw = localStorage.getItem(LS_SEEN);
+    return raw ? new Set<number>(JSON.parse(raw)) : new Set<number>();
+  } catch { return new Set<number>(); }
+}
+function readNotifKeys(today: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(LS_KEYS);
+    if (!raw) return new Set<string>();
+    const { date, keys } = JSON.parse(raw) as { date: string; keys: string[] };
+    return date === today ? new Set<string>(keys) : new Set<string>(); // reset on new day
+  } catch { return new Set<string>(); }
+}
+function saveSeenIds(ids: Set<number>) {
+  try { localStorage.setItem(LS_SEEN, JSON.stringify([...ids])); } catch {}
+}
+function saveNotifKeys(today: string, keys: Set<string>) {
+  try { localStorage.setItem(LS_KEYS, JSON.stringify({ date: today, keys: [...keys] })); } catch {}
+}
+
 function useAdminNotifications(bookings: Booking[]) {
   const [notifs, setNotifs] = useState<AdminNotif[]>([]);
   const [permission, setPermission] = useState<NotificationPermission>("default");
-  const seenIds      = useRef<Set<number>>(new Set());
-  const notifKeys    = useRef<Set<string>>(new Set()); // dedup checkin/checkout
-  const isFirstLoad  = useRef(true);
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Refs dipersist ke localStorage agar tidak reset saat halaman di-refresh
+  const seenIds   = useRef<Set<number>>(readSeenIds());
+  const notifKeys = useRef<Set<string>>(readNotifKeys(today));
+  const isFirstLoad = useRef(true);
 
   useEffect(() => {
     if ("Notification" in window) setPermission(Notification.permission);
@@ -95,20 +123,29 @@ function useAdminNotifications(bookings: Booking[]) {
   useEffect(() => {
     if (bookings.length === 0) return;
 
-    const today = new Date().toISOString().slice(0, 10);
-
     if (isFirstLoad.current) {
-      // Tandai semua booking yang ada sebagai "sudah dilihat" — jangan notif
       isFirstLoad.current = false;
-      bookings.forEach((b) => seenIds.current.add(b.id));
 
-      // Tapi langsung notif untuk checkin/checkout HARI INI saat panel dibuka
+      // Tandai semua booking yang ada sebagai "sudah dilihat" — jangan notif
+      let seenChanged = false;
+      bookings.forEach((b) => {
+        if (!seenIds.current.has(b.id)) {
+          seenIds.current.add(b.id);
+          seenChanged = true;
+        }
+      });
+      if (seenChanged) saveSeenIds(seenIds.current);
+
+      // Notif checkin/checkout HARI INI — hanya sekali per booking per hari
+      // (notifKeys sudah diisi dari localStorage, jadi skip kalau sudah pernah)
+      let keysChanged = false;
       bookings.forEach((b) => {
         if (b.status === "cancelled") return;
         if (b.checkIn.slice(0, 10) === today) {
           const key = `ci-${b.bookingRef}`;
           if (!notifKeys.current.has(key)) {
             notifKeys.current.add(key);
+            keysChanged = true;
             fire({ type: "checkin", title: "🏠 Check-in Hari Ini",
               body: `${b.guestName} (${b.bookingRef}) check-in di ${b.unitName}`,
               bookingRef: b.bookingRef });
@@ -118,19 +155,23 @@ function useAdminNotifications(bookings: Booking[]) {
           const key = `co-${b.bookingRef}`;
           if (!notifKeys.current.has(key)) {
             notifKeys.current.add(key);
+            keysChanged = true;
             fire({ type: "checkout", title: "👋 Check-out Hari Ini",
               body: `${b.guestName} (${b.bookingRef}) check-out dari ${b.unitName}`,
               bookingRef: b.bookingRef });
           }
         }
       });
+      if (keysChanged) saveNotifKeys(today, notifKeys.current);
       return;
     }
 
-    // Polling berikutnya: deteksi booking BARU
+    // Polling berikutnya: deteksi booking BARU saja
+    let seenChanged = false;
     bookings.forEach((b) => {
       if (!seenIds.current.has(b.id)) {
         seenIds.current.add(b.id);
+        seenChanged = true;
         fire({
           type: "new_booking",
           title: "🔔 Pesanan Baru!",
@@ -139,11 +180,14 @@ function useAdminNotifications(bookings: Booking[]) {
         });
       }
     });
+    if (seenChanged) saveSeenIds(seenIds.current);
   }, [bookings]);
 
   function markAllRead() {
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
   }
+  // clearAll hanya hapus tampilan panel — tidak reset localStorage
+  // (kalau direset, refresh berikutnya akan notif ulang lagi)
   function clearAll() { setNotifs([]); }
 
   function simulate(type: AdminNotif["type"]) {
