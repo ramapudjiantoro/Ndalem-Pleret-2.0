@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Lock, LogOut, RefreshCw, Check, X, Banknote, Calendar, User,
   Phone, Mail, BedDouble, ChevronDown, ChevronUp, Plus, Trash2,
   AlertTriangle, Eye, EyeOff, ChevronLeft, ChevronRight,
   StickyNote, Pencil, Download, FileText, FileSpreadsheet, Printer, Filter,
+  Bell, BellRing,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,237 @@ const STATUS_LABELS: Record<string, string> = {
 const PAYMENT_LABELS: Record<string, string> = {
   pending: "Belum Bayar", paid: "Sudah Bayar",
 };
+
+// ─── Notification Types ───────────────────────────────────────────────────────
+interface AdminNotif {
+  id: string;
+  type: "new_booking" | "checkin" | "checkout" | "test";
+  title: string;
+  body: string;
+  bookingRef?: string;
+  at: Date;
+  read: boolean;
+}
+
+const NOTIF_ICON: Record<AdminNotif["type"], string> = {
+  new_booking: "🔔", checkin: "🏠", checkout: "👋", test: "✅",
+};
+
+// ─── useAdminNotifications ────────────────────────────────────────────────────
+function useAdminNotifications(bookings: Booking[]) {
+  const [notifs, setNotifs] = useState<AdminNotif[]>([]);
+  const [permission, setPermission] = useState<NotificationPermission>("default");
+  const seenIds      = useRef<Set<number>>(new Set());
+  const notifKeys    = useRef<Set<string>>(new Set()); // dedup checkin/checkout
+  const isFirstLoad  = useRef(true);
+
+  useEffect(() => {
+    if ("Notification" in window) setPermission(Notification.permission);
+  }, []);
+
+  async function requestPermission() {
+    if (!("Notification" in window)) return;
+    const p = await Notification.requestPermission();
+    setPermission(p);
+    return p;
+  }
+
+  function fire(notif: Omit<AdminNotif, "id" | "at" | "read">) {
+    const id = Math.random().toString(36).slice(2) + Date.now();
+    setNotifs((prev) => [{ ...notif, id, at: new Date(), read: false }, ...prev].slice(0, 60));
+
+    if ("Notification" in window && Notification.permission === "granted") {
+      try {
+        const n = new Notification(notif.title, {
+          body: notif.body,
+          icon: "/favicon.ico",
+          tag: notif.bookingRef ?? notif.type,
+          requireInteraction: notif.type === "new_booking",
+        });
+        n.onclick = () => { window.focus(); n.close(); };
+      } catch { /* Safari silent fail */ }
+    }
+  }
+
+  useEffect(() => {
+    if (bookings.length === 0) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    if (isFirstLoad.current) {
+      // Tandai semua booking yang ada sebagai "sudah dilihat" — jangan notif
+      isFirstLoad.current = false;
+      bookings.forEach((b) => seenIds.current.add(b.id));
+
+      // Tapi langsung notif untuk checkin/checkout HARI INI saat panel dibuka
+      bookings.forEach((b) => {
+        if (b.status === "cancelled") return;
+        if (b.checkIn.slice(0, 10) === today) {
+          const key = `ci-${b.bookingRef}`;
+          if (!notifKeys.current.has(key)) {
+            notifKeys.current.add(key);
+            fire({ type: "checkin", title: "🏠 Check-in Hari Ini",
+              body: `${b.guestName} (${b.bookingRef}) check-in di ${b.unitName}`,
+              bookingRef: b.bookingRef });
+          }
+        }
+        if (b.checkOut.slice(0, 10) === today) {
+          const key = `co-${b.bookingRef}`;
+          if (!notifKeys.current.has(key)) {
+            notifKeys.current.add(key);
+            fire({ type: "checkout", title: "👋 Check-out Hari Ini",
+              body: `${b.guestName} (${b.bookingRef}) check-out dari ${b.unitName}`,
+              bookingRef: b.bookingRef });
+          }
+        }
+      });
+      return;
+    }
+
+    // Polling berikutnya: deteksi booking BARU
+    bookings.forEach((b) => {
+      if (!seenIds.current.has(b.id)) {
+        seenIds.current.add(b.id);
+        fire({
+          type: "new_booking",
+          title: "🔔 Pesanan Baru!",
+          body: `${b.guestName} memesan ${b.unitName} · ${b.checkIn.slice(0,10)} → ${b.checkOut.slice(0,10)} · ${b.nights} malam`,
+          bookingRef: b.bookingRef,
+        });
+      }
+    });
+  }, [bookings]);
+
+  function markAllRead() {
+    setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+  }
+  function clearAll() { setNotifs([]); }
+
+  function simulate(type: AdminNotif["type"]) {
+    const ref = `NP-SIM-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+    const MAP: Record<AdminNotif["type"], Omit<AdminNotif, "id" | "at" | "read">> = {
+      new_booking: { type: "new_booking", title: "🔔 Pesanan Baru! (Simulasi)",
+        body: `Budi Santoso memesan Ndalem Belakang · 2026-05-10 → 2026-05-12 · 2 malam`, bookingRef: ref },
+      checkin: { type: "checkin", title: "🏠 Check-in Hari Ini (Simulasi)",
+        body: `Sari Dewi (${ref}) check-in di Ndalem Tengah`, bookingRef: ref },
+      checkout: { type: "checkout", title: "👋 Check-out Hari Ini (Simulasi)",
+        body: `Andi Pratama (${ref}) check-out dari Ndalem Belakang`, bookingRef: ref },
+      test: { type: "test", title: "✅ Test Notifikasi",
+        body: "Sistem notifikasi admin Ndalem Pleret berfungsi dengan baik!" },
+    };
+    fire(MAP[type]);
+  }
+
+  const unread = notifs.filter((n) => !n.read).length;
+  return { notifs, unread, permission, requestPermission, markAllRead, clearAll, simulate };
+}
+
+// ─── NotifPanel ───────────────────────────────────────────────────────────────
+function NotifPanel({
+  notifs, unread, permission,
+  onRequestPermission, onMarkAllRead, onClearAll, onSimulate, onClose,
+}: {
+  notifs: AdminNotif[]; unread: number; permission: NotificationPermission;
+  onRequestPermission: () => void; onMarkAllRead: () => void; onClearAll: () => void;
+  onSimulate: (t: AdminNotif["type"]) => void; onClose: () => void;
+}) {
+  return (
+    <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-card border border-border/50 rounded-2xl shadow-2xl z-50 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-primary/5">
+        <div className="flex items-center gap-2">
+          <Bell className="w-4 h-4 text-primary" />
+          <span className="font-bold text-sm">Notifikasi</span>
+          {unread > 0 && (
+            <span className="bg-red-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {unread > 0 && (
+            <button onClick={onMarkAllRead} className="text-xs text-primary hover:underline">Semua dibaca</button>
+          )}
+          {notifs.length > 0 && (
+            <button onClick={onClearAll} className="text-xs text-muted-foreground hover:text-foreground">Hapus</button>
+          )}
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-muted text-muted-foreground">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Permission banner */}
+      {permission !== "granted" && (
+        <div className="px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700/30">
+          <p className="text-xs text-amber-800 dark:text-amber-300 mb-2 leading-snug">
+            {permission === "denied"
+              ? "⚠️ Notifikasi browser diblokir. Izinkan di pengaturan browser Anda."
+              : "Aktifkan notifikasi browser agar alert muncul meski tab diminimalkan."}
+          </p>
+          {permission !== "denied" && (
+            <button onClick={onRequestPermission}
+              className="text-xs bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-3 py-1.5 font-medium transition-colors">
+              Aktifkan Notifikasi Browser
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* List */}
+      <div className="max-h-64 overflow-y-auto">
+        {notifs.length === 0 ? (
+          <div className="py-8 text-center text-muted-foreground text-sm">
+            <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
+            <p>Belum ada notifikasi</p>
+            <p className="text-xs mt-1 opacity-60">Coba simulasi di bawah</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border/30">
+            {notifs.map((n) => (
+              <div key={n.id} className={`px-4 py-3 flex items-start gap-3 transition-colors ${!n.read ? "bg-primary/[0.03]" : ""}`}>
+                <span className="text-base leading-none mt-0.5 shrink-0">{NOTIF_ICON[n.type]}</span>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-xs font-semibold leading-snug ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>
+                    {n.title.replace(" (Simulasi)", "")}
+                    {n.title.includes("Simulasi") && (
+                      <span className="ml-1 text-[9px] bg-muted px-1 rounded font-normal">simulasi</span>
+                    )}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{n.body}</p>
+                  <p className="text-[10px] text-muted-foreground/50 mt-1">
+                    {n.at.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
+                {!n.read && <div className="w-1.5 h-1.5 bg-primary rounded-full mt-1.5 shrink-0" />}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Simulate section */}
+      <div className="border-t border-border/50 px-4 py-3 bg-secondary/30">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">
+          Simulasi & Test
+        </p>
+        <div className="grid grid-cols-2 gap-1.5">
+          {([
+            { type: "new_booking" as const, label: "Booking Baru",  emoji: "🔔" },
+            { type: "checkin"     as const, label: "Check-in",      emoji: "🏠" },
+            { type: "checkout"    as const, label: "Check-out",     emoji: "👋" },
+            { type: "test"        as const, label: "Test Sistem",   emoji: "✅" },
+          ]).map(({ type, label, emoji }) => (
+            <button key={type} onClick={() => onSimulate(type)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-white dark:bg-card text-xs font-medium hover:bg-muted/50 active:scale-95 transition-all">
+              <span>{emoji}</span> {label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Login Screen ─────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
@@ -860,6 +1092,8 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
   const [blockForm, setBlockForm] = useState({ unitId: "1", date: "", reason: "" });
   const [statusFilter, setStatusFilter] = useState("all");
   const [showDownload, setShowDownload] = useState(false);
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   // ── Kosongkan Tanggal state ──
   const [clearForm, setClearForm] = useState({ unitId: "1", date: "" });
@@ -882,6 +1116,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
       if (res.status === 401) { onLogout(); return []; }
       return res.json();
     },
+    refetchInterval: 30_000, // auto-poll setiap 30 detik untuk deteksi booking baru
   });
 
   const { data: blockedDates = [], refetch: refetchBlocked } = useQuery<BlockedDate[]>({
@@ -892,6 +1127,27 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
       return res.json();
     },
   });
+
+  const notif = useAdminNotifications(bookings);
+
+  // Tutup notif panel saat klik di luar
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifPanel(false);
+      }
+    }
+    if (showNotifPanel) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showNotifPanel]);
+
+  // Update page title dengan badge unread
+  useEffect(() => {
+    document.title = notif.unread > 0
+      ? `(${notif.unread}) Admin Panel · Ndalem Pleret`
+      : "Admin Panel · Ndalem Pleret";
+    return () => { document.title = "Ndalem Pleret"; };
+  }, [notif.unread]);
 
   async function handleRefresh() {
     setIsRefreshing(true);
@@ -983,6 +1239,41 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
+
+            {/* Bell notifikasi */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => { setShowNotifPanel((v) => !v); if (!showNotifPanel) notif.markAllRead(); }}
+                className={`relative h-8 w-8 flex items-center justify-center rounded-lg border transition-colors
+                  ${showNotifPanel
+                    ? "bg-primary text-white border-primary"
+                    : "border-border bg-white dark:bg-card hover:bg-muted text-foreground"}`}
+                title="Notifikasi"
+              >
+                {notif.unread > 0
+                  ? <BellRing className="w-4 h-4 animate-[wiggle_0.5s_ease-in-out_infinite]" />
+                  : <Bell className="w-4 h-4" />}
+                {notif.unread > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 leading-none">
+                    {notif.unread > 9 ? "9+" : notif.unread}
+                  </span>
+                )}
+              </button>
+
+              {showNotifPanel && (
+                <NotifPanel
+                  notifs={notif.notifs}
+                  unread={notif.unread}
+                  permission={notif.permission}
+                  onRequestPermission={notif.requestPermission}
+                  onMarkAllRead={notif.markAllRead}
+                  onClearAll={notif.clearAll}
+                  onSimulate={notif.simulate}
+                  onClose={() => setShowNotifPanel(false)}
+                />
+              )}
+            </div>
+
             <Button size="sm" variant="outline" onClick={handleRefresh} disabled={isRefreshing} className="rounded-lg h-8 text-xs">
               <RefreshCw className={`w-3.5 h-3.5 mr-1 transition-transform ${isRefreshing ? "animate-spin" : ""}`} />
               {isRefreshing ? "Memuat..." : "Refresh"}
