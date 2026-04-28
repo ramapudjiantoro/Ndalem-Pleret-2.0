@@ -196,10 +196,36 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json(allBookings);
   });
 
+  // ── Admin: Check Date Availability (for editing) ──────────────────────────
+  app.get("/api/admin/bookings/:id/check-dates", adminAuth, async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    const { checkIn, checkOut } = req.query as { checkIn?: string; checkOut?: string };
+
+    if (!checkIn || !checkOut) {
+      return res.status(400).json({ message: "checkIn dan checkOut diperlukan" });
+    }
+
+    const nights = calcNights(checkIn, checkOut);
+    if (nights < 1) {
+      return res.status(400).json({ message: "checkOut harus setelah checkIn", available: false });
+    }
+
+    const booking = await storage.getBookingById(id);
+    if (!booking) {
+      return res.status(404).json({ message: "Booking tidak ditemukan" });
+    }
+
+    const available = await storage.isDateRangeAvailableExcluding(booking.unitId, checkIn, checkOut, id);
+    res.json({ available, nights });
+  });
+
   // ── Admin: Update Booking ──────────────────────────────────────────────────
   app.patch("/api/admin/bookings/:id", adminAuth, async (req, res) => {
     const id = parseInt(req.params.id, 10);
-    const { status, paymentStatus, adminNotes } = req.body as { status?: string; paymentStatus?: string; adminNotes?: string };
+    const { status, paymentStatus, adminNotes, checkIn, checkOut } = req.body as {
+      status?: string; paymentStatus?: string; adminNotes?: string;
+      checkIn?: string; checkOut?: string;
+    };
 
     let updated;
     if (status) {
@@ -210,6 +236,24 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
     if (adminNotes !== undefined) {
       updated = await storage.updateAdminNotes(id, adminNotes);
+    }
+    if (checkIn && checkOut) {
+      const nights = calcNights(checkIn, checkOut);
+      if (nights < 1) {
+        return res.status(400).json({ message: "checkOut harus setelah checkIn" });
+      }
+      const booking = await storage.getBookingById(id);
+      if (!booking) {
+        return res.status(404).json({ message: "Booking tidak ditemukan" });
+      }
+      // Validate availability (excluding this booking itself)
+      const available = await storage.isDateRangeAvailableExcluding(booking.unitId, checkIn, checkOut, id);
+      if (!available) {
+        return res.status(409).json({ message: "Tanggal bentrok dengan booking atau pemblokiran lain" });
+      }
+      const unit = await storage.getUnit(booking.unitId);
+      const totalPrice = (unit?.pricePerNight ?? booking.totalPrice / booking.nights) * nights;
+      updated = await storage.updateBookingDates(id, checkIn, checkOut, nights, Math.round(totalPrice));
     }
     if (!updated) {
       return res.status(404).json({ message: "Booking tidak ditemukan" });

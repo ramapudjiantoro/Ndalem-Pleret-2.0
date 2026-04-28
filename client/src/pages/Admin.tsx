@@ -349,6 +349,64 @@ function BookingRow({ booking, token, onRefresh }: { booking: Booking; token: st
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesDraft, setNotesDraft] = useState(booking.adminNotes ?? "");
 
+  // ── Edit Tanggal ──
+  const [editingDates, setEditingDates] = useState(false);
+  const [dateDraft, setDateDraft] = useState({
+    checkIn: booking.checkIn.slice(0, 10),
+    checkOut: booking.checkOut.slice(0, 10),
+  });
+  const [dateAvailability, setDateAvailability] = useState<"idle" | "checking" | "available" | "conflict">("idle");
+
+  const pricePerNight = booking.nights > 0 ? Math.round(booking.totalPrice / booking.nights) : 600_000;
+  const draftNights = (() => {
+    const d1 = new Date(dateDraft.checkIn + "T12:00:00Z");
+    const d2 = new Date(dateDraft.checkOut + "T12:00:00Z");
+    const diff = Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+  })();
+  const draftTotal = pricePerNight * draftNights;
+
+  // Auto-check availability saat tanggal berubah (debounce 600ms)
+  useEffect(() => {
+    if (!editingDates || !dateDraft.checkIn || !dateDraft.checkOut || draftNights < 1) return;
+    // Kalau sama dengan aslinya, langsung "tersedia"
+    if (
+      dateDraft.checkIn === booking.checkIn.slice(0, 10) &&
+      dateDraft.checkOut === booking.checkOut.slice(0, 10)
+    ) {
+      setDateAvailability("available");
+      return;
+    }
+    setDateAvailability("checking");
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/admin/bookings/${booking.id}/check-dates?checkIn=${dateDraft.checkIn}&checkOut=${dateDraft.checkOut}`,
+          { headers: { "x-admin-token": token } }
+        );
+        const data = await res.json();
+        setDateAvailability(data.available ? "available" : "conflict");
+      } catch {
+        setDateAvailability("idle");
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [dateDraft.checkIn, dateDraft.checkOut, editingDates]);
+
+  async function saveDates() {
+    if (dateAvailability !== "available" || draftNights < 1) return;
+    setLoading(true);
+    await fetch(`/api/admin/bookings/${booking.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "x-admin-token": token },
+      body: JSON.stringify({ checkIn: dateDraft.checkIn, checkOut: dateDraft.checkOut }),
+    });
+    setLoading(false);
+    setEditingDates(false);
+    setDateAvailability("idle");
+    onRefresh();
+  }
+
   async function update(field: "status" | "paymentStatus", value: string) {
     setLoading(true);
     await fetch(`/api/admin/bookings/${booking.id}`, {
@@ -418,6 +476,125 @@ function BookingRow({ booking, token, onRefresh }: { booking: Booking; token: st
             <div className="flex items-center gap-2"><BedDouble className="w-4 h-4 text-muted-foreground" /><span>{booking.unitName}</span></div>
           </div>
           {booking.notes && <p className="text-xs text-muted-foreground bg-secondary/50 p-3 rounded-lg">📝 {booking.notes}</p>}
+
+          {/* ── Edit Tanggal ── */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" /> Tanggal Menginap
+              </span>
+              {!editingDates && (
+                <button
+                  onClick={() => {
+                    setDateDraft({ checkIn: booking.checkIn.slice(0, 10), checkOut: booking.checkOut.slice(0, 10) });
+                    setDateAvailability("idle");
+                    setEditingDates(true);
+                  }}
+                  className="text-xs text-primary hover:underline flex items-center gap-1 transition-colors"
+                >
+                  <Pencil className="w-3 h-3" /> Edit Tanggal
+                </button>
+              )}
+            </div>
+
+            {editingDates ? (
+              <div className="space-y-3 p-3 rounded-lg bg-secondary/40 border border-border/50">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs mb-1 block">Check-in Baru</Label>
+                    <Input
+                      type="date"
+                      value={dateDraft.checkIn}
+                      onChange={(e) => {
+                        setDateDraft((d) => ({ ...d, checkIn: e.target.value }));
+                        setDateAvailability("idle");
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1 block">Check-out Baru</Label>
+                    <Input
+                      type="date"
+                      value={dateDraft.checkOut}
+                      min={dateDraft.checkIn}
+                      onChange={(e) => {
+                        setDateDraft((d) => ({ ...d, checkOut: e.target.value }));
+                        setDateAvailability("idle");
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Preview malam + total */}
+                {draftNights > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="text-muted-foreground">
+                      <strong className="text-foreground">{draftNights}</strong> malam
+                    </span>
+                    <span className="text-muted-foreground">·</span>
+                    <span className="text-muted-foreground">
+                      Total: <strong className="text-foreground">{formatIDR(draftTotal)}</strong>
+                    </span>
+                    {(draftNights !== booking.nights || draftTotal !== booking.totalPrice) && (
+                      <span className="text-amber-600 dark:text-amber-400 text-[10px] bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 px-1.5 py-0.5 rounded-full">
+                        sebelumnya {booking.nights} malam · {formatIDR(booking.totalPrice)}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Availability status */}
+                {dateAvailability === "checking" && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <RefreshCw className="w-3 h-3 animate-spin" /> Mengecek ketersediaan...
+                  </div>
+                )}
+                {dateAvailability === "available" && (
+                  <div className="flex items-center gap-2 text-xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700/40 px-3 py-2 rounded-lg">
+                    <Check className="w-3.5 h-3.5 shrink-0" />
+                    <span>Tanggal tersedia — siap disimpan</span>
+                  </div>
+                )}
+                {dateAvailability === "conflict" && (
+                  <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/40 px-3 py-2 rounded-lg">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Tanggal bentrok dengan booking atau pemblokiran lain</span>
+                  </div>
+                )}
+                {draftNights < 1 && dateDraft.checkIn && dateDraft.checkOut && (
+                  <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Check-out harus setelah check-in</span>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs rounded-lg"
+                    onClick={saveDates}
+                    disabled={loading || dateAvailability !== "available" || draftNights < 1}
+                  >
+                    <Check className="w-3 h-3 mr-1" /> Simpan Tanggal
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs rounded-lg text-muted-foreground"
+                    onClick={() => { setEditingDates(false); setDateAvailability("idle"); }}
+                    disabled={loading}
+                  >
+                    Batal
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-foreground">
+                {booking.checkIn.slice(0, 10)} → {booking.checkOut.slice(0, 10)}
+                <span className="text-muted-foreground ml-2">({booking.nights} malam)</span>
+              </p>
+            )}
+          </div>
 
           {/* ── Admin Notes ── */}
           <div className="space-y-1.5">

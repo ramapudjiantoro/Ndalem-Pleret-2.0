@@ -83,7 +83,12 @@ export interface IStorage {
   updateBookingStatus(id: number, status: string): Promise<Booking | undefined>;
   updatePaymentStatus(id: number, paymentStatus: string): Promise<Booking | undefined>;
   updateAdminNotes(id: number, adminNotes: string): Promise<Booking | undefined>;
+  updateBookingDates(id: number, checkIn: string, checkOut: string, nights: number, totalPrice: number): Promise<Booking | undefined>;
   deleteBooking(id: number): Promise<{ bookingRef: string } | undefined>;
+
+  // Helpers
+  getBookingById(id: number): Promise<Booking | undefined>;
+  isDateRangeAvailableExcluding(unitId: number, checkIn: string, checkOut: string, excludeBookingId: number): Promise<boolean>;
 
   // Blocked Dates
   blockDate(unitId: number, date: string, reason?: string): Promise<BlockedDate>;
@@ -313,6 +318,53 @@ export class DatabaseStorage implements IStorage {
       .where(eq(bookings.id, id))
       .returning();
     return updated;
+  }
+
+  async updateBookingDates(id: number, checkIn: string, checkOut: string, nights: number, totalPrice: number): Promise<Booking | undefined> {
+    const [updated] = await db
+      .update(bookings)
+      .set({ checkIn, checkOut, nights, totalPrice })
+      .where(eq(bookings.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getBookingById(id: number): Promise<Booking | undefined> {
+    const [booking] = await db.select().from(bookings).where(eq(bookings.id, id));
+    return booking;
+  }
+
+  async isDateRangeAvailableExcluding(
+    unitId: number, checkIn: string, checkOut: string, excludeBookingId: number
+  ): Promise<boolean> {
+    // Same logic as isDateRangeAvailable but excludes the booking being edited
+    const conflictBookings = await db
+      .select({ id: bookings.id })
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.unitId, unitId),
+          ne(bookings.status, "cancelled"),
+          ne(bookings.id, excludeBookingId),
+          lt(bookings.checkIn, checkOut),
+          gt(bookings.checkOut, checkIn),
+        )
+      );
+    if (conflictBookings.length > 0) return false;
+
+    // Check blocked dates
+    let cur = checkIn;
+    while (cur < checkOut) {
+      const blocked = await db
+        .select({ id: blockedDates.id })
+        .from(blockedDates)
+        .where(and(eq(blockedDates.unitId, unitId), eq(blockedDates.date, cur)));
+      if (blocked.length > 0) return false;
+      const d = new Date(cur + "T12:00:00Z");
+      d.setUTCDate(d.getUTCDate() + 1);
+      cur = d.toISOString().slice(0, 10);
+    }
+    return true;
   }
 
   async deleteBooking(id: number): Promise<{ bookingRef: string } | undefined> {
