@@ -12,6 +12,7 @@ import { FacilityCard } from "@/components/FacilityCard";
 import { BookingModal } from "@/components/BookingModal";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
+import { FAQSection } from "@/components/FAQSection";
 import { StickyBookingBar, FloatingBookingButton } from "@/components/StickyBookingBar";
 import { UnitDetailModal } from "@/components/UnitDetailModal";
 import { Button } from "@/components/ui/button";
@@ -404,6 +405,9 @@ export default function Home() {
       {/* ── TESTIMONIALS ── */}
       <TestimonialsSection />
 
+      {/* ── FAQ ── */}
+      <FAQSection />
+
       {/* ── LOCATION & CONTACT ── */}
       <section id="location" className="py-24 bg-secondary/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -489,7 +493,8 @@ export default function Home() {
                 {[
                   { name: "Beranda", to: "hero" }, { name: "Tentang", to: "about" },
                   { name: "Unit", to: "units" }, { name: "Fasilitas", to: "facilities" },
-                  { name: "Ketersediaan", to: "availability" }, { name: "Lokasi", to: "location" },
+                  { name: "Ketersediaan", to: "availability" }, { name: "FAQ", to: "faq" },
+                  { name: "Lokasi", to: "location" },
                 ].map((item) => (
                   <Link key={item.name} to={item.to} smooth className="text-sm text-white/60 hover:text-white cursor-pointer transition-colors">
                     {item.name}
