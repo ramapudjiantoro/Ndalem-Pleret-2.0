@@ -155,14 +155,36 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <Button
-              size="lg"
-              className="rounded-full text-base px-8 h-14 bg-primary hover:bg-primary/90 text-white border-none shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all"
-              onClick={() => openBooking()}
+            {/* CTA utama — animasi mencuat keluar dari layar */}
+            <motion.div
+              animate={{
+                scale: [1, 1.07, 1.03, 1.07, 1],
+                y: [0, -5, -2, -5, 0],
+                boxShadow: [
+                  "0 10px 30px rgba(0,0,0,0.35)",
+                  "0 22px 55px rgba(201,124,55,0.65)",
+                  "0 14px 40px rgba(201,124,55,0.45)",
+                  "0 22px 55px rgba(201,124,55,0.65)",
+                  "0 10px 30px rgba(0,0,0,0.35)",
+                ],
+              }}
+              transition={{
+                duration: 2.2,
+                repeat: Infinity,
+                repeatDelay: 2,
+                ease: "easeInOut",
+              }}
+              style={{ borderRadius: "9999px", display: "inline-flex" }}
             >
-              <Calendar className="w-5 h-5 mr-2" />
-              Cek Ketersediaan & Pesan
-            </Button>
+              <Button
+                size="lg"
+                className="rounded-full text-xl font-extrabold px-8 h-14 bg-primary hover:bg-primary/90 text-white border-none transition-colors"
+                onClick={() => openBooking()}
+              >
+                <Calendar className="w-5 h-5 mr-2 shrink-0" />
+                Cek Ketersediaan & Pesan
+              </Button>
+            </motion.div>
             <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
               <Button
                 size="lg"

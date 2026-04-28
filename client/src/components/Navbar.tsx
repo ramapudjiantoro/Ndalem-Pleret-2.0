@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { name: "Unit", to: "units" },
   { name: "Fasilitas", to: "facilities" },
   { name: "Ketersediaan", to: "availability" },
+  { name: "FAQ", to: "faq" },
   { name: "Lokasi", to: "location" },
 ];
 

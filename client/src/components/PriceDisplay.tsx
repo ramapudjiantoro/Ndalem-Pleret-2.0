@@ -21,17 +21,17 @@ const SIZE = {
   lg: { orig: "text-sm",  curr: "text-2xl font-bold" },
 } as const;
 
-// Animasi berkedut: bergetar cepat lalu diam, lalu ulangi tiap ~4 detik
-const jitter = {
+// Animasi pop "mencuat": naik-turun dengan scale pulse, seperti mencuat dari layar
+const pop = {
   animate: {
-    x: [0, -2, 3, -2, 1, -1, 1, -1, 0],
-    y: [0,  1, -1,  0, 1, -1, 0,  1, 0],
+    scale: [1, 1.12, 0.96, 1.08, 1],
+    y:     [0,   -5,   1,   -3,  0],
   },
   transition: {
-    duration: 0.5,
+    duration: 0.55,
     repeat: Infinity,
-    repeatDelay: 3.8,
-    ease: "easeInOut",
+    repeatDelay: 3.2,
+    ease: [0.34, 1.56, 0.64, 1], // spring-like easing
   },
 };
 
@@ -61,8 +61,8 @@ export function PriceDisplay({
         className={`leading-none font-display tabular-nums ${s.curr} ${
           isDark ? "text-white" : "text-primary"
         }`}
-        animate={jitter.animate}
-        transition={jitter.transition}
+        animate={pop.animate}
+        transition={pop.transition}
       >
         {formatIDR(currentPrice)}
       </motion.div>
