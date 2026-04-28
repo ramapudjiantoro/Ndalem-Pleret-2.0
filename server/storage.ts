@@ -19,11 +19,12 @@ const db = new Proxy({} as NonNullable<typeof rawDb>, {
   },
 });
 import {
-  inquiries, units, bookings, blockedDates, adminConfig,
+  inquiries, units, bookings, blockedDates, adminConfig, pushSubscriptions,
   type InsertInquiry, type Inquiry,
   type Unit,
   type Booking,
   type BlockedDate,
+  type PushSubscription,
 } from "@shared/schema";
 
 // ─── HELPER: normalise a DB date value to "YYYY-MM-DD" string ─────────────────
@@ -97,6 +98,16 @@ export interface IStorage {
   // Blocked Dates
   blockDate(unitId: number, date: string, reason?: string): Promise<BlockedDate>;
   deleteBlockedDate(id: number): Promise<void>;
+
+  // Push Subscriptions
+  savePushSubscription(data: { endpoint: string; p256dh: string; auth: string }): Promise<void>;
+  getPushSubscriptions(): Promise<{ endpoint: string; keys: { p256dh: string; auth: string } }[]>;
+  deletePushSubscription(endpoint: string): Promise<void>;
+  deletePushSubscriptions(endpoints: string[]): Promise<void>;
+
+  // VAPID keys (stored in adminConfig, managed from Admin Dashboard)
+  getVapidKeys(): Promise<{ publicKey: string; privateKey: string; email: string } | null>;
+  setVapidKeys(publicKey: string, privateKey: string, email: string): Promise<void>;
 }
 
 // ─── IMPLEMENTATION ───────────────────────────────────────────────────────────
@@ -412,6 +423,58 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBlockedDate(id: number): Promise<void> {
     await db.delete(blockedDates).where(eq(blockedDates.id, id));
+  }
+
+  // ── Push Subscriptions ─────────────────────────────────────────────────────
+  async savePushSubscription(data: { endpoint: string; p256dh: string; auth: string }): Promise<void> {
+    await db
+      .insert(pushSubscriptions)
+      .values(data)
+      .onConflictDoUpdate({
+        target: pushSubscriptions.endpoint,
+        set: { p256dh: data.p256dh, auth: data.auth },
+      });
+  }
+
+  async getPushSubscriptions(): Promise<{ endpoint: string; keys: { p256dh: string; auth: string } }[]> {
+    try {
+      const rows = await db.select().from(pushSubscriptions);
+      return rows.map((r) => ({ endpoint: r.endpoint, keys: { p256dh: r.p256dh, auth: r.auth } }));
+    } catch { return []; }
+  }
+
+  async deletePushSubscription(endpoint: string): Promise<void> {
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
+  }
+
+  async deletePushSubscriptions(endpoints: string[]): Promise<void> {
+    if (endpoints.length === 0) return;
+    for (const ep of endpoints) {
+      await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, ep));
+    }
+  }
+
+  // ── VAPID Keys ─────────────────────────────────────────────────────────────
+  async getVapidKeys(): Promise<{ publicKey: string; privateKey: string; email: string } | null> {
+    try {
+      const allRows = await db.select().from(adminConfig);
+      const get = (k: string) => allRows.find((r) => r.key === k)?.value ?? null;
+      const pub  = get("vapid_public_key");
+      const priv = get("vapid_private_key");
+      const email = get("vapid_email") ?? "cs@ndalempleret.com";
+      if (!pub || !priv) return null;
+      return { publicKey: pub, privateKey: priv, email };
+    } catch { return null; }
+  }
+
+  async setVapidKeys(publicKey: string, privateKey: string, email: string): Promise<void> {
+    const upsert = (key: string, value: string) =>
+      db.insert(adminConfig)
+        .values({ key, value })
+        .onConflictDoUpdate({ target: adminConfig.key, set: { value, updatedAt: new Date() } });
+    await upsert("vapid_public_key",  publicKey);
+    await upsert("vapid_private_key", privateKey);
+    await upsert("vapid_email",       email);
   }
 }
 

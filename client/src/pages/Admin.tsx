@@ -81,7 +81,63 @@ function saveNotifKeys(today: string, keys: Set<string>) {
   try { localStorage.setItem(LS_KEYS, JSON.stringify({ date: today, keys: [...keys] })); } catch {}
 }
 
-function useAdminNotifications(bookings: Booking[]) {
+// ─── Web Push helpers ─────────────────────────────────────────────────────────
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const output = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) output[i] = rawData.charCodeAt(i);
+  return output;
+}
+
+async function registerWebPush(token: string): Promise<void> {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  try {
+    // Register service worker
+    const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    await navigator.serviceWorker.ready;
+
+    // Ambil VAPID public key dari server
+    const res = await fetch("/api/admin/vapid-public-key", {
+      headers: { "x-admin-token": token },
+    });
+    if (!res.ok) return;
+    const { publicKey } = await res.json();
+    if (!publicKey) return; // VAPID belum dikonfigurasi di server
+
+    // Cek apakah sudah ada subscription yang aktif
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      // Sudah subscribe — pastikan tersimpan di DB (idempotent)
+      const { endpoint, keys } = existing.toJSON() as any;
+      await fetch("/api/admin/push-subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-token": token },
+        body: JSON.stringify({ endpoint, keys }),
+      });
+      return;
+    }
+
+    // Buat subscription baru
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+
+    const { endpoint, keys } = sub.toJSON() as any;
+    await fetch("/api/admin/push-subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-token": token },
+      body: JSON.stringify({ endpoint, keys }),
+    });
+    console.log("✅ Push subscription registered");
+  } catch (err) {
+    console.warn("Push subscribe failed:", err);
+  }
+}
+
+function useAdminNotifications(bookings: Booking[], token: string) {
   const [notifs, setNotifs] = useState<AdminNotif[]>([]);
   const [permission, setPermission] = useState<NotificationPermission>("default");
 
@@ -100,8 +156,19 @@ function useAdminNotifications(bookings: Booking[]) {
     if (!("Notification" in window)) return;
     const p = await Notification.requestPermission();
     setPermission(p);
+    if (p === "granted") {
+      // Langsung daftarkan push subscription setelah izin diberikan
+      await registerWebPush(token);
+    }
     return p;
   }
+
+  // Daftarkan push subscription saat hook pertama kali dipanggil (jika sudah granted)
+  useEffect(() => {
+    if (Notification.permission === "granted") {
+      registerWebPush(token);
+    }
+  }, [token]);
 
   function fire(notif: Omit<AdminNotif, "id" | "at" | "read">) {
     const id = Math.random().toString(36).slice(2) + Date.now();
@@ -407,7 +474,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, remember: boolean) 
               : <Lock className="w-7 h-7 text-primary" />}
           </div>
           <h1 className="text-2xl font-bold font-display">
-            {mode === "reset" ? "Reset Password" : "Admin Panel"}
+            {mode === "reset" ? "Reset Password" : "Admin Dashboard"}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Ndalem Pleret Guest House</p>
         </div>
@@ -1547,9 +1614,202 @@ function AdminCalendarPreview({ bookings, blockedDates }: { bookings: Booking[];
   );
 }
 
+// ─── PushSetupPanel ───────────────────────────────────────────────────────────
+function PushSetupPanel({ token }: { token: string }) {
+  const [pubKey,  setPubKey]  = useState("");
+  const [privKey, setPrivKey] = useState("");
+  const [email,   setEmail]   = useState("cs@ndalempleret.com");
+  const [status,  setStatus]  = useState<"idle" | "saving" | "ok" | "error">("idle");
+  const [msg,     setMsg]     = useState("");
+  const [pushReady, setPushReady] = useState<boolean | null>(null);
+  const [subStatus, setSubStatus] = useState<"idle" | "subscribing" | "ok" | "error">("idle");
+
+  // Cek apakah push sudah aktif
+  useEffect(() => {
+    fetch("/api/admin/vapid-public-key", { headers: { "x-admin-token": token } })
+      .then((r) => r.json())
+      .then((d) => setPushReady(d.ready === true))
+      .catch(() => setPushReady(false));
+  }, [token]);
+
+  async function saveKeys(e: React.FormEvent) {
+    e.preventDefault();
+    setStatus("saving");
+    try {
+      const res = await fetch("/api/admin/vapid-setup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-token": token },
+        body: JSON.stringify({ publicKey: pubKey.trim(), privateKey: privKey.trim(), email: email.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Gagal");
+      setStatus("ok");
+      setMsg("Keys berhasil disimpan. Push notifications aktif!");
+      setPushReady(true);
+    } catch (err: any) {
+      setStatus("error");
+      setMsg(err.message ?? "Terjadi kesalahan");
+    }
+  }
+
+  async function subscribeBrowser() {
+    setSubStatus("subscribing");
+    try {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        throw new Error("Browser ini tidak mendukung Web Push");
+      }
+      const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+      await navigator.serviceWorker.ready;
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") throw new Error("Izin notifikasi ditolak");
+
+      const { publicKey } = await fetch("/api/admin/vapid-public-key", {
+        headers: { "x-admin-token": token },
+      }).then((r) => r.json());
+      if (!publicKey) throw new Error("VAPID keys belum disimpan di server");
+
+      // Helper: base64url → Uint8Array
+      const toUint8 = (b64: string) => {
+        const pad = "=".repeat((4 - b64.length % 4) % 4);
+        const raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+        return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+      };
+
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: toUint8(publicKey),
+        });
+      }
+      const { endpoint, keys } = sub.toJSON() as any;
+      await fetch("/api/admin/push-subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-token": token },
+        body: JSON.stringify({ endpoint, keys }),
+      });
+      setSubStatus("ok");
+    } catch (err: any) {
+      setSubStatus("error");
+      setMsg(err.message ?? "Subscribe gagal");
+    }
+  }
+
+  return (
+    <div className="space-y-6 max-w-xl">
+      {/* Status card */}
+      <div className={`rounded-xl border p-4 flex items-start gap-3 ${
+        pushReady
+          ? "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-700/40"
+          : "bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-700/40"
+      }`}>
+        <span className="text-xl">{pushReady ? "✅" : "⚠️"}</span>
+        <div>
+          <p className="font-semibold text-sm">
+            {pushReady === null ? "Mengecek..." : pushReady ? "Web Push aktif" : "Web Push belum dikonfigurasi"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {pushReady
+              ? "Server siap kirim notifikasi ke browser yang sudah subscribe."
+              : "Isi VAPID keys di bawah untuk mengaktifkan notifikasi background."}
+          </p>
+        </div>
+      </div>
+
+      {/* Step 1: Input VAPID Keys */}
+      <div className="bg-white dark:bg-card rounded-xl border border-border/50 p-5 shadow-sm">
+        <h3 className="font-bold text-sm mb-1 flex items-center gap-2">
+          <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-bold">1</span>
+          Simpan VAPID Keys
+        </h3>
+        <p className="text-xs text-muted-foreground mb-4">
+          Generate di terminal dengan <code className="bg-muted px-1 py-0.5 rounded text-[11px]">npx web-push generate-vapid-keys</code> lalu paste di bawah. Cukup sekali.
+        </p>
+        <form onSubmit={saveKeys} className="space-y-3">
+          <div>
+            <Label className="text-xs mb-1 block">Public Key</Label>
+            <Input
+              value={pubKey}
+              onChange={(e) => setPubKey(e.target.value)}
+              placeholder="BIhYyy-1UL4gj1pG..."
+              className="font-mono text-xs"
+              required
+            />
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">Private Key</Label>
+            <Input
+              value={privKey}
+              onChange={(e) => setPrivKey(e.target.value)}
+              placeholder="HDDfhs_Uz9glJj-..."
+              className="font-mono text-xs"
+              type="password"
+              required
+            />
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">Email (untuk VAPID contact)</Label>
+            <Input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="cs@ndalempleret.com"
+              type="email"
+              required
+            />
+          </div>
+          {status !== "idle" && (
+            <p className={`text-xs px-3 py-2 rounded-lg ${
+              status === "ok"    ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400" :
+              status === "error" ? "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400" :
+              "bg-muted text-muted-foreground"
+            }`}>{msg || (status === "saving" ? "Menyimpan..." : "")}</p>
+          )}
+          <Button type="submit" disabled={status === "saving"} className="w-full rounded-lg h-9 text-sm">
+            {status === "saving" ? "Menyimpan..." : status === "ok" ? "✓ Tersimpan" : "Simpan Keys"}
+          </Button>
+        </form>
+      </div>
+
+      {/* Step 2: Subscribe browser */}
+      <div className="bg-white dark:bg-card rounded-xl border border-border/50 p-5 shadow-sm">
+        <h3 className="font-bold text-sm mb-1 flex items-center gap-2">
+          <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-bold">2</span>
+          Aktifkan Notifikasi di Browser Ini
+        </h3>
+        <p className="text-xs text-muted-foreground mb-4">
+          Klik tombol di bawah untuk mengizinkan notifikasi. Lakukan ini di setiap perangkat (HP/laptop) yang ingin menerima notifikasi booking.
+        </p>
+        {subStatus === "ok" ? (
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700/40 rounded-lg p-3 text-sm text-green-700 dark:text-green-400 font-medium text-center">
+            ✅ Browser ini sudah terdaftar — notifikasi akan masuk meski app ditutup
+          </div>
+        ) : (
+          <>
+            {subStatus === "error" && (
+              <p className="text-xs bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 px-3 py-2 rounded-lg mb-3">{msg}</p>
+            )}
+            <Button
+              onClick={subscribeBrowser}
+              disabled={subStatus === "subscribing" || !pushReady}
+              className="w-full rounded-lg h-9 text-sm"
+              variant="outline"
+            >
+              <Bell className="w-4 h-4 mr-2" />
+              {subStatus === "subscribing" ? "Mendaftarkan..." : "Izinkan & Aktifkan Notifikasi"}
+            </Button>
+            {!pushReady && (
+              <p className="text-xs text-muted-foreground mt-2 text-center">Selesaikan Step 1 terlebih dahulu</p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Admin Dashboard (all hooks here, after auth confirmed) ───────────────────
 function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => void }) {
-  const [activeTab, setActiveTab] = useState<"bookings" | "blocked" | "calendar">("bookings");
+  const [activeTab, setActiveTab] = useState<"bookings" | "blocked" | "calendar" | "settings">("bookings");
   const [blockForm, setBlockForm] = useState({ unitId: "1", date: "", reason: "" });
   const [statusFilter, setStatusFilter] = useState("all");
   const [showDownload, setShowDownload] = useState(false);
@@ -1590,7 +1850,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
     },
   });
 
-  const notif = useAdminNotifications(bookings);
+  const notif = useAdminNotifications(bookings, token);
 
   // Tutup notif panel saat klik di luar
   useEffect(() => {
@@ -1606,8 +1866,8 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
   // Update page title dengan badge unread
   useEffect(() => {
     document.title = notif.unread > 0
-      ? `(${notif.unread}) Admin Panel · Ndalem Pleret`
-      : "Admin Panel · Ndalem Pleret";
+      ? `(${notif.unread}) Admin Dashboard · Ndalem Pleret`
+      : "Admin Dashboard · Ndalem Pleret";
     return () => { document.title = "Ndalem Pleret"; };
   }, [notif.unread]);
 
@@ -1696,7 +1956,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
       <div className="bg-white dark:bg-card border-b border-border/50 shadow-sm sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div>
-            <h1 className="font-bold font-display text-lg">Admin Panel</h1>
+            <h1 className="font-bold font-display text-base sm:text-lg leading-tight">Admin Dashboard</h1>
             <p className="text-xs text-muted-foreground">Ndalem Pleret Guest House</p>
           </div>
           <div className="flex items-center gap-2">
@@ -1778,6 +2038,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
             { id: "bookings" as const, label: "Pemesanan" },
             { id: "calendar" as const, label: "Preview Kalender" },
             { id: "blocked" as const, label: "Kelola Tanggal" },
+            { id: "settings" as const, label: "⚙️ Pengaturan" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -2034,6 +2295,11 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
               )}
             </div>
           </div>
+        )}
+
+        {/* ── Pengaturan Tab ── */}
+        {activeTab === "settings" && (
+          <PushSetupPanel token={token} />
         )}
       </div>
 

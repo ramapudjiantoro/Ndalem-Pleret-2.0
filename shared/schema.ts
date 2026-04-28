@@ -89,6 +89,19 @@ export const insertBlockedDateSchema = createInsertSchema(blockedDates).omit({
 export type BlockedDate = typeof blockedDates.$inferSelect;
 export type InsertBlockedDate = z.infer<typeof insertBlockedDateSchema>;
 
+// ─── PUSH SUBSCRIPTIONS ───────────────────────────────────────────────────────
+// Menyimpan Web Push subscription dari browser admin.
+// Jalankan `npm run db:push` setelah menambah tabel ini!
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+
 // ─── ADMIN CONFIG ─────────────────────────────────────────────────────────────
 // Stores runtime admin settings (e.g., custom password override)
 export const adminConfig = pgTable("admin_config", {

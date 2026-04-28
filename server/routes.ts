@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertBookingSchema, insertInquirySchema } from "@shared/schema";
 import { sendBookingReceived, sendBookingConfirmation, verifyEmailConfig } from "./email";
 import { createBookingCalendarEvents, deleteBookingCalendarEvents } from "./calendar";
+import { sendPushToAll, initPush, isPushReady, getPublicKey } from "./push";
 import { z } from "zod";
 
 // ─── Simple admin auth middleware ─────────────────────────────────────────────
@@ -32,6 +33,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Seed default units on startup
   await storage.seedUnitsIfEmpty();
+
+  // Init Web Push dengan VAPID keys dari DB (jika sudah di-setup)
+  storage.getVapidKeys().then((keys) => {
+    if (keys) initPush(keys);
+    else console.log("ℹ️  VAPID keys not set — configure via Admin Dashboard → Settings");
+  }).catch(() => {});
 
   // ── Public: Inquiries ──────────────────────────────────────────────────────
   app.post("/api/inquiries", async (req, res) => {
@@ -128,6 +135,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         totalPrice: booking.totalPrice,
         guestCount: booking.guestCount,
       }).catch((err) => console.error("❌ Receipt email failed:", err?.message ?? err));
+
+      // Web Push: kirim notifikasi ke semua browser admin yang sudah subscribe
+      storage.getPushSubscriptions().then(async (subs) => {
+        if (subs.length === 0) return;
+        const expired = await sendPushToAll(subs, {
+          title: "🔔 Pesanan Baru!",
+          body: `${booking.guestName} memesan ${unit.name} · ${booking.checkIn} → ${booking.checkOut} · ${booking.nights} malam`,
+          tag: booking.bookingRef,
+          requireInteraction: true,
+          url: "/admin",
+        });
+        // Hapus subscription yang sudah expired (user unsubscribed dari browser)
+        if (expired.length > 0) storage.deletePushSubscriptions(expired).catch(() => {});
+      }).catch((err) => console.error("Push notification failed:", err));
 
       // Fire-and-forget — buat 3 Google Calendar events
       createBookingCalendarEvents({
@@ -358,6 +379,47 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const id = parseInt(req.params.id, 10);
     await storage.deleteBlockedDate(id);
     res.status(204).send();
+  });
+
+  // ── Admin: Web Push ────────────────────────────────────────────────────────
+  // Kirim VAPID public key ke frontend untuk subscribe
+  app.get("/api/admin/vapid-public-key", adminAuth, (_req, res) => {
+    res.json({ publicKey: getPublicKey(), ready: isPushReady() });
+  });
+
+  // Setup VAPID keys dari Admin Dashboard (simpan ke DB, langsung init)
+  app.post("/api/admin/vapid-setup", adminAuth, async (req, res) => {
+    const { publicKey, privateKey, email } = req.body as {
+      publicKey?: string; privateKey?: string; email?: string;
+    };
+    if (!publicKey || !privateKey) {
+      return res.status(400).json({ message: "publicKey dan privateKey diperlukan" });
+    }
+    const vapidEmail = email ?? "cs@ndalempleret.com";
+    await storage.setVapidKeys(publicKey, privateKey, vapidEmail);
+    initPush({ publicKey, privateKey, email: vapidEmail }); // aktifkan langsung tanpa restart
+    res.json({ ok: true, message: "VAPID keys saved and push initialized" });
+  });
+
+  // Simpan push subscription baru dari browser admin
+  app.post("/api/admin/push-subscribe", adminAuth, async (req, res) => {
+    const { endpoint, keys } = req.body as {
+      endpoint?: string;
+      keys?: { p256dh?: string; auth?: string };
+    };
+    if (!endpoint || !keys?.p256dh || !keys?.auth) {
+      return res.status(400).json({ message: "endpoint dan keys (p256dh, auth) diperlukan" });
+    }
+    await storage.savePushSubscription({ endpoint, p256dh: keys.p256dh, auth: keys.auth });
+    res.json({ ok: true });
+  });
+
+  // Hapus push subscription (user mematikan notifikasi)
+  app.delete("/api/admin/push-unsubscribe", adminAuth, async (req, res) => {
+    const { endpoint } = req.body as { endpoint?: string };
+    if (!endpoint) return res.status(400).json({ message: "endpoint diperlukan" });
+    await storage.deletePushSubscription(endpoint);
+    res.json({ ok: true });
   });
 
   return httpServer;
