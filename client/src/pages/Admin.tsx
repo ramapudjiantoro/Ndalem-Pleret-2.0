@@ -1014,7 +1014,14 @@ function BookingRow({ booking, token, onRefresh }: { booking: Booking; token: st
               </Button>
             )}
             <a
-              href={`https://wa.me/${booking.guestPhone.replace(/[^0-9]/g, "").replace(/^0/, "62")}?text=${encodeURIComponent(`Halo ${booking.guestName}, pemesanan Anda di Ndalem Pleret (${booking.bookingRef}) telah dikonfirmasi! `)}`}
+              href={`https://wa.me/${booking.guestPhone.replace(/[^0-9]/g, "").replace(/^0/, "62")}?text=${encodeURIComponent(
+                `Halo ${booking.guestName}, pemesanan Anda di Ndalem Pleret (${booking.bookingRef}) telah dikonfirmasi! 🎉\n\n` +
+                `Berikut info Wi-Fi ${booking.unitName}:\n` +
+                (booking.unitName?.toLowerCase().includes("tengah")
+                  ? "Username: *Omahtamu*\nPassword: *ynwa2022*"
+                  : "Username: *Guesthouse*\nPassword: *ndalempleret*") +
+                `\n\n📧 Panduan check-in lengkap sudah kami kirim ke email Anda. Jika tidak ada di inbox, silakan cek folder *Promotions* atau *Spam*.\n\nSelamat menginap & jangan ragu hubungi kami jika ada pertanyaan! 😊`
+              )}`}
               target="_blank" rel="noopener noreferrer"
             >
               <Button size="sm" variant="outline" className="rounded-lg h-8 text-xs border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/30">

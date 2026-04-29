@@ -45,9 +45,9 @@ const GALLERY_IMAGES = [
 
 const UNIT_FEATURES = [
   // Ndalem Belakang
-  ["Kapasitas 4–6 Orang", "Ruang Keluarga Luas + Smart TV", "Dapur Lengkap Siap Pakai", "Taman Pribadi & Parkir", "AC + Wi-Fi di Seluruh Area"],
+  ["Kapasitas 4–6 Orang", "Ruang Keluarga Luas + Smart TV", "Dapur Lengkap Siap Pakai", "Taman Pribadi & Parkir", "AC di Setiap Kamar · Wi-Fi di Seluruh Area"],
   // Ndalem Tengah
-  ["Kapasitas 4–6 Orang", "Ruang Keluarga + Smart TV", "Dapur Lengkap Siap Pakai", "Area Parkir Luas & Aman", "AC + Wi-Fi di Seluruh Area"],
+  ["Kapasitas 4–6 Orang", "Ruang Keluarga + Smart TV", "Dapur Lengkap Siap Pakai", "Area Parkir Luas & Aman", "AC di Setiap Kamar · Wi-Fi di Seluruh Area"],
 ];
 
 const TRUST_STATS = [

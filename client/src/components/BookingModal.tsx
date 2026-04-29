@@ -506,10 +506,10 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                 </div>
 
                 {/* QRIS */}
-                <div className="bg-white dark:bg-card border border-border rounded-xl p-4 text-center">
+                <div className="bg-white dark:bg-card border border-border rounded-2xl p-5 text-center">
                   <div className="text-sm font-semibold mb-2 text-foreground">Scan QRIS untuk Membayar</div>
                   <div className="text-xl font-bold text-primary mb-3">{formatIDR(total)}</div>
-                  <div className="mx-auto w-52 h-52 rounded-xl overflow-hidden border border-border mb-3 bg-white dark:bg-card p-1">
+                  <div className="mx-auto w-52 h-52 rounded-2xl overflow-hidden border border-border mb-3 bg-white dark:bg-card p-1.5">
                     <img src="/qris.jpg" alt="QRIS Ndalem Pleret" className="w-full h-full object-contain" />
                   </div>
                   <div className="text-xs text-muted-foreground leading-relaxed">
@@ -517,7 +517,7 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                   </div>
                 </div>
 
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-xl p-4 text-sm text-amber-800 dark:text-amber-300 space-y-1">
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-2xl p-4 text-sm text-amber-800 dark:text-amber-300 space-y-1">
                   <div className="font-semibold">Langkah selanjutnya:</div>
                   <ol className="list-decimal list-inside space-y-1 text-xs">
                     <li>Bayar sesuai nominal di atas via QRIS</li>
