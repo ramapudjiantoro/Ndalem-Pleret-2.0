@@ -81,8 +81,8 @@ export function TestimonialsSection() {
     <section id="testimonials" className="py-24 bg-secondary/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeading
-          title="Kata Tamu Kami"
-          subtitle="Ulasan & Testimoni — Google Maps"
+          title="Yang Mereka Katakan"
+          subtitle="Ulasan Tamu — Google Maps"
         />
 
         {/* Aggregate rating */}

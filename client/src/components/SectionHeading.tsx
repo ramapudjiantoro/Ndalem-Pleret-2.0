@@ -16,16 +16,16 @@ export function SectionHeading({ title, subtitle, centered = true, className }: 
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
-        className="text-primary font-medium tracking-widest text-sm uppercase mb-3 block"
+        className="text-primary font-semibold tracking-[0.16em] text-xs uppercase mb-3 block"
       >
         {subtitle}
       </motion.span>
-      <motion.h2 
+      <motion.h2
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="text-3xl md:text-4xl font-display font-bold text-foreground"
+        className="text-4xl md:text-5xl font-display font-bold text-foreground leading-tight"
       >
         {title}
       </motion.h2>

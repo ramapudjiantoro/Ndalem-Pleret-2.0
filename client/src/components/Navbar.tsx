@@ -10,7 +10,6 @@ interface NavbarProps {
 }
 
 const NAV_ITEMS = [
-  { name: "Beranda", to: "hero" },
   { name: "Tentang", to: "about" },
   { name: "Unit", to: "units" },
   { name: "Fasilitas", to: "facilities" },
@@ -34,8 +33,10 @@ export function Navbar({ onOpenBooking }: NavbarProps) {
   return (
     <nav
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out",
-        solidNav ? "bg-white/95 dark:bg-card/95 backdrop-blur-sm shadow-md py-3" : "bg-transparent py-5 text-white"
+        "fixed z-50 transition-all duration-300 ease-in-out",
+        solidNav
+          ? "top-4 left-4 right-4 rounded-2xl bg-card/95 dark:bg-card/95 backdrop-blur-md shadow-lg border border-border/40 py-2"
+          : "top-0 left-0 right-0 bg-transparent py-5 text-white"
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

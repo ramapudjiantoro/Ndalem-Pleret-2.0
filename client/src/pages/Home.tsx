@@ -250,23 +250,23 @@ export default function Home() {
       <section id="about" className="py-16 bg-background relative overflow-hidden">
         <div className="absolute top-0 right-0 w-1/3 h-full bg-secondary/30 -skew-x-12 translate-x-1/4 pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
             <motion.div
               initial={{ opacity: 0, x: -50 }} whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }} transition={{ duration: 0.8 }}
               className="relative"
             >
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white">
-                <img src={livingRoomImg} alt="Ruang Tamu Nyaman" className="w-full h-auto object-cover" />
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border-2 border-white/60 aspect-[4/5]">
+                <img src={livingRoomImg} alt="Ruang Tamu Nyaman" className="w-full h-full object-cover" />
               </div>
-              <div className="absolute -bottom-8 -right-8 bg-white dark:bg-card p-6 rounded-xl shadow-xl max-w-xs hidden md:block">
-                <div className="flex items-center gap-4 mb-2">
+              <div className="absolute -bottom-5 -right-5 bg-white dark:bg-card p-4 rounded-xl shadow-xl max-w-xs hidden md:block">
+                <div className="flex items-center gap-3">
                   <div className="bg-yellow-400/20 p-2 rounded-full">
-                    <Star className="w-6 h-6 text-yellow-500 fill-current" />
+                    <Star className="w-5 h-5 text-yellow-500 fill-current" />
                   </div>
                   <div>
-                    <p className="font-bold text-lg">Rating 4.9</p>
-                    <p className="text-sm text-muted-foreground">500+ tamu puas</p>
+                    <p className="font-bold text-base">Rating 4.9</p>
+                    <p className="text-xs text-muted-foreground">500+ tamu puas</p>
                   </div>
                 </div>
               </div>
@@ -472,20 +472,22 @@ export default function Home() {
       {/* ── GALLERY ── */}
       <section id="gallery" className="py-16 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionHeading title="Galeri Foto" subtitle="Lihat ke Dalam" />
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <SectionHeading title="Lihat ke Dalam" subtitle="Galeri Foto" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 sm:auto-rows-[220px] gap-3">
             {GALLERY_IMAGES.map((img, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }} transition={{ duration: 0.5, delay: index * 0.08 }}
                 className={`relative rounded-2xl overflow-hidden group shadow-md cursor-pointer border border-border/50 ${
-                  index === 4 ? "col-span-2 sm:col-span-1 aspect-video sm:aspect-square" : "aspect-square"
+                  index === 0
+                    ? "row-span-1 sm:row-span-2 aspect-[4/3] sm:aspect-auto"
+                    : "aspect-square sm:aspect-auto"
                 }`}
               >
-                <img src={img.src} alt={img.alt} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                  <span className="text-white font-medium text-sm translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                <img src={img.src} alt={img.alt} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                  <span className="text-white font-medium text-sm translate-y-3 group-hover:translate-y-0 transition-transform duration-300">
                     {img.alt}
                   </span>
                 </div>
@@ -512,40 +514,38 @@ export default function Home() {
             <motion.div
               initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }} transition={{ duration: 0.6 }}
-              className="space-y-8"
             >
-              <div className="bg-white dark:bg-card p-8 rounded-2xl shadow-lg border border-border/50">
-                <h3 className="text-2xl font-bold font-display mb-6">Informasi Kontak</h3>
-                <div className="space-y-6">
+              <div className="bg-white dark:bg-card rounded-2xl shadow-lg border border-border/50 overflow-hidden">
+                {/* Kontak */}
+                <div className="p-6 space-y-4">
                   {[
-                    { icon: MapPin, title: "Alamat", content: "Jl. Pleret Dalam IV No.6, Banyuanyar, Kec. Banjarsari\nKota Surakarta, Jawa Tengah 57100\nIndonesia" },
+                    { icon: MapPin, title: "Alamat", content: "Jl. Pleret Dalam IV No.6, Banyuanyar, Kec. Banjarsari\nKota Surakarta, Jawa Tengah 57100" },
                     { icon: Phone, title: "WhatsApp & Telepon", content: "+62 851 2131 4631", link: WHATSAPP_URL },
                     { icon: Mail, title: "Email", content: "ndalempleret@gmail.com" },
                   ].map(({ icon: Icon, title, content, link }) => (
-                    <div key={title} className="flex items-start gap-4">
-                      <div className="bg-primary/10 p-3 rounded-lg text-primary mt-1"><Icon className="w-5 h-5" /></div>
+                    <div key={title} className="flex items-start gap-3">
+                      <div className="bg-primary/10 p-2.5 rounded-lg text-primary mt-0.5 shrink-0"><Icon className="w-4 h-4" /></div>
                       <div>
-                        <h4 className="font-semibold mb-1">{title}</h4>
-                        <p className="text-muted-foreground text-sm whitespace-pre-line">{content}</p>
-                        {link && <a href={link} className="text-primary hover:underline text-xs font-medium mt-1 inline-block">Klik untuk chat →</a>}
+                        <h4 className="font-semibold text-sm mb-0.5">{title}</h4>
+                        <p className="text-muted-foreground text-xs whitespace-pre-line leading-relaxed">{content}</p>
+                        {link && <a href={link} className="text-primary hover:underline text-xs font-medium mt-0.5 inline-block">Klik untuk chat →</a>}
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
-
-              <div className="bg-primary dark:bg-[hsl(28,35%,20%)] text-white p-8 rounded-2xl shadow-xl border border-transparent dark:border-white/15">
-                <h3 className="text-xl font-bold mb-3">Siap Menginap Bersama Kami?</h3>
-                <p className="mb-6 opacity-90 leading-relaxed text-sm">Amankan tanggal Anda sekarang. Ketersediaan terbatas — terutama di akhir pekan dan musim liburan.</p>
-                <div className="flex flex-col gap-3">
-                  <Button onClick={() => openBooking()} className="w-full bg-white text-primary hover:bg-white/90 font-bold h-12 rounded-xl">
-                    <Calendar className="w-4 h-4 mr-2" /> Pesan Langsung
-                  </Button>
-                  <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
-                    <Button variant="outline" className="w-full border-white/30 text-white hover:bg-white/10 h-12 rounded-xl">
-                      Tanya-tanya dulu - WhatsApp
+                {/* CTA strip di bawah */}
+                <div className="bg-primary dark:bg-[hsl(28,35%,20%)] text-white p-6">
+                  <p className="text-sm opacity-80 mb-4 leading-relaxed">Ketersediaan terbatas — terutama di akhir pekan dan musim liburan.</p>
+                  <div className="flex flex-col gap-2.5">
+                    <Button onClick={() => openBooking()} className="w-full bg-white text-primary hover:bg-white/90 font-bold h-11 rounded-xl">
+                      <Calendar className="w-4 h-4 mr-2" /> Pesan Langsung
                     </Button>
-                  </a>
+                    <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" className="w-full border-white/30 text-white hover:bg-white/10 h-11 rounded-xl">
+                        Tanya-tanya dulu - WhatsApp
+                      </Button>
+                    </a>
+                  </div>
                 </div>
               </div>
             </motion.div>
