@@ -20,6 +20,12 @@ interface BookingModalProps {
 type Step = 1 | 2 | 3 | 4; // 1=unit+dates, 2=guest info, 3=payment, 4=confirmation
 
 const MONTHS_ID = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+
+// Preview foto ruang keluarga per unit (ID sesuai DB)
+const UNIT_PREVIEW: Record<number, string> = {
+  1: "/belakang/ruang-keluarga.jpg",
+  2: "/tengah/ruang-keluarga.jpg",
+};
 const DAYS_ID = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
 const DEPOSIT = 500000;
 const WHATSAPP_NUMBER = "6285121314631";
@@ -61,9 +67,6 @@ function MiniCalendar({
 
   return (
     <div className="select-none">
-      <div className="text-center font-semibold text-sm mb-3 text-foreground">
-        {MONTHS_ID[month]} {year}
-      </div>
       <div className="grid grid-cols-7 gap-0.5 mb-1">
         {DAYS_ID.map((d) => (
           <div key={d} className="text-center text-xs text-muted-foreground py-1 font-medium">{d}</div>
@@ -316,16 +319,28 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                         <button
                           key={unit.id}
                           onClick={() => setSelectedUnitId(unit.id)}
-                          className={`relative text-left p-4 rounded-xl border-2 transition-all ${selectedUnitId === unit.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40 bg-white dark:bg-card/60"}`}
+                          className={`relative text-left rounded-xl border-2 transition-all overflow-hidden ${selectedUnitId === unit.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40 bg-white dark:bg-card/60"}`}
                         >
-                          <div className="font-semibold text-sm text-foreground">{unit.name}</div>
-                          <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1"><BedDouble className="w-3.5 h-3.5" /> {unit.bedrooms} kamar</span>
-                            <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> maks {unit.maxGuests} tamu</span>
-                          </div>
-                          <div className="mt-2 flex items-end gap-1">
-                            <PriceDisplay currentPrice={unit.pricePerNight} size="sm" />
-                            <span className="text-xs text-muted-foreground pb-0.5">/malam</span>
+                          {/* Preview foto ruang keluarga */}
+                          {UNIT_PREVIEW[unit.id] && (
+                            <div className="w-full h-28 overflow-hidden">
+                              <img
+                                src={UNIT_PREVIEW[unit.id]}
+                                alt={`Ruang keluarga ${unit.name}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                          <div className="p-3">
+                            <div className="font-semibold text-sm text-foreground">{unit.name}</div>
+                            <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1"><BedDouble className="w-3.5 h-3.5" /> {unit.bedrooms} kamar</span>
+                              <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> maks {unit.maxGuests} tamu</span>
+                            </div>
+                            <div className="mt-1.5 flex items-end gap-1">
+                              <PriceDisplay currentPrice={unit.pricePerNight} size="sm" />
+                              <span className="text-xs text-muted-foreground pb-0.5">/malam</span>
+                            </div>
                           </div>
                           {selectedUnitId === unit.id && (
                             <div className="absolute top-2 right-2 bg-primary rounded-full p-0.5"><Check className="w-3 h-3 text-white" /></div>
@@ -339,11 +354,18 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                 {/* Date Picker */}
                 <div>
                   <Label className="text-sm font-semibold text-foreground mb-3 block">Pilih Tanggal Menginap</Label>
-                  <div className="flex items-center gap-3 mb-4 text-xs">
+                  <div className="flex items-center gap-3 mb-2 text-xs flex-wrap">
                     <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-primary"></span> Dipilih</span>
                     <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-primary/15 border border-primary/30"></span> Rentang</span>
                     <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600"></span> Penuh</span>
                   </div>
+
+                  {/* Error — ditampilkan tepat di atas kalender agar terlihat tanpa scroll */}
+                  {formError && (
+                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-xs bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 px-3 py-2 rounded-lg mb-2">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />{formError}
+                    </div>
+                  )}
 
                   {/* Calendar nav */}
                   <div className="flex items-center justify-between mb-3">
@@ -390,11 +412,6 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                   )}
                 </div>
 
-                {formError && (
-                  <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 p-3 rounded-lg">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />{formError}
-                  </div>
-                )}
               </div>
             )}
 

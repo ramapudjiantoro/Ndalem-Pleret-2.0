@@ -1804,15 +1804,6 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
               )}
             </div>
 
-            {/* Ganti Password */}
-            <button
-              onClick={() => setShowChangePassword(true)}
-              className="h-8 w-8 flex items-center justify-center rounded-lg border border-border bg-white dark:bg-card hover:bg-muted text-foreground transition-colors"
-              title="Ganti Password"
-            >
-              <KeyRound className="w-4 h-4" />
-            </button>
-
             <Button size="sm" variant="outline" onClick={handleRefresh} disabled={isRefreshing} className="rounded-lg h-8 text-xs">
               <RefreshCw className={`w-3.5 h-3.5 mr-1 transition-transform ${isRefreshing ? "animate-spin" : ""}`} />
               {isRefreshing ? "Memuat..." : "Refresh"}
