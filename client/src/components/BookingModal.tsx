@@ -510,7 +510,7 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                   <div className="text-sm font-semibold mb-2 text-foreground">Scan QRIS untuk Membayar</div>
                   <div className="text-xl font-bold text-primary mb-3">{formatIDR(total)}</div>
                   <div className="mx-auto w-52 h-52 rounded-2xl overflow-hidden border border-border mb-3 bg-white dark:bg-card p-1.5">
-                    <img src="/qris.jpg" alt="QRIS Ndalem Pleret" className="w-full h-full object-contain" />
+                    <img src="/qris.jpg" alt="QRIS Ndalem Pleret" className="w-full h-full object-cover" />
                   </div>
                   <div className="text-xs text-muted-foreground leading-relaxed">
                     Scan kode QR di atas menggunakan aplikasi perbankan atau e-wallet Anda (GoPay, OVO, Dana, dll.)
