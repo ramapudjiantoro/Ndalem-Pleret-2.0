@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, differenceInCalendarDays, addDays, isBefore, isAfter, isToday, isSameDay } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { X, ChevronLeft, ChevronRight, Check, Copy, ExternalLink, Loader2, AlertTriangle, BedDouble, Users, Calendar, Phone, Mail, User } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Check, Copy, ExternalLink, Loader2, AlertTriangle, BedDouble, Users, Calendar, Phone, Mail, User, QrCode, Clock, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -107,6 +107,161 @@ function MiniCalendar({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ─── Step 4: Payment component ───────────────────────────────────────────────
+// Dual-mode: dynamic QRIS (Midtrans) ATAU static QRIS + unique amount
+function Step4Payment({
+  bookingResult, selectedUnit, checkIn, checkOut, nights, total,
+  guestForm, copiedRef, onCopyRef, buildWhatsApp,
+}: {
+  bookingResult: any;
+  selectedUnit: any;
+  checkIn: Date | null; checkOut: Date | null;
+  nights: number; total: number;
+  guestForm: { name: string; phone: string; email: string; guestCount: string; notes: string };
+  copiedRef: boolean;
+  onCopyRef: () => void;
+  buildWhatsApp: () => string;
+}) {
+  const hasDynamicQris = !!bookingResult?.midtransTransactionId;
+  const uniqueAmount: number | undefined = bookingResult?.uniqueAmount;
+
+  // Poll untuk auto-detect payment confirmation (hanya jika Midtrans aktif)
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!hasDynamicQris || paymentConfirmed) return;
+    // Poll setiap 4 detik, max 10 menit
+    let attempts = 0;
+    pollRef.current = setInterval(async () => {
+      attempts++;
+      if (attempts > 150) { clearInterval(pollRef.current!); return; } // 150 × 4s = 10 menit
+      try {
+        const res = await fetch(`/api/bookings/${bookingResult.bookingRef}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.paymentStatus === "paid") {
+          setPaymentConfirmed(true);
+          clearInterval(pollRef.current!);
+        }
+      } catch { /* ignore */ }
+    }, 4000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [hasDynamicQris, bookingResult?.bookingRef, paymentConfirmed]);
+
+  return (
+    <div className="p-6 space-y-5">
+      {/* Booking ref + payment confirmed indicator */}
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 text-center">
+        {paymentConfirmed ? (
+          <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400 mb-2">
+            <CheckCircle2 className="w-5 h-5" />
+            <span className="font-semibold text-sm">Pembayaran Dikonfirmasi!</span>
+          </div>
+        ) : (
+          <div className="text-xs text-green-700 dark:text-green-400 font-medium mb-2">✅ Pesanan Diterima</div>
+        )}
+        <div className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Kode Pemesanan</div>
+        <div className="text-2xl font-bold font-mono text-primary tracking-wider">{bookingResult.bookingRef}</div>
+        <button onClick={onCopyRef} className="mt-2 flex items-center gap-1.5 mx-auto text-xs text-muted-foreground hover:text-primary transition-colors">
+          {copiedRef ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+          {copiedRef ? "Tersalin!" : "Salin kode"}
+        </button>
+      </div>
+
+      {/* ── QRIS Section ── */}
+      {hasDynamicQris ? (
+        /* Dynamic QRIS dari Midtrans — nominal sudah tertanam di QR */
+        <div className="bg-white dark:bg-card border border-border rounded-xl p-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <QrCode className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold text-foreground">Scan QRIS untuk Membayar</span>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">Nominal sudah terisi otomatis — cukup scan &amp; konfirmasi PIN</p>
+          <div className="text-2xl font-bold text-primary mb-3">{formatIDR(uniqueAmount ?? total)}</div>
+          <div className="mx-auto w-56 h-56 rounded-xl overflow-hidden border border-border mb-3 bg-white p-1">
+            <img
+              src={`/api/bookings/${bookingResult.bookingRef}/qris-image`}
+              alt="QRIS Ndalem Pleret"
+              className="w-full h-full object-contain"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            />
+          </div>
+          {bookingResult.qrisExpiry && (
+            <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+              <Clock className="w-3 h-3" />
+              <span>QR berlaku hingga {bookingResult.qrisExpiry.slice(0, 16)}</span>
+            </div>
+          )}
+          {paymentConfirmed && (
+            <div className="mt-3 flex items-center justify-center gap-2 text-green-600 text-sm font-semibold">
+              <CheckCircle2 className="w-4 h-4" /> Pembayaran berhasil diterima!
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Static QRIS + unique amount — customer ketik nominal unik */
+        <div className="bg-white dark:bg-card border border-border rounded-xl p-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <QrCode className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold text-foreground">Scan QRIS untuk Membayar</span>
+          </div>
+          <p className="text-xs text-muted-foreground mb-2">Ketik nominal PERSIS seperti di bawah saat membayar</p>
+          {/* Unique amount — tampil besar dan jelas */}
+          <div className="bg-primary/10 border-2 border-primary/30 rounded-xl p-3 mb-3">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Nominal Pembayaran</div>
+            <div className="text-2xl font-bold text-primary">{formatIDR(uniqueAmount ?? total)}</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Nominal ini unik untuk pesanan Anda — bantu kami memverifikasi pembayaran dengan cepat
+            </div>
+          </div>
+          <div className="mx-auto w-52 h-52 rounded-xl overflow-hidden border border-border mb-3 bg-white dark:bg-card p-1">
+            <img src="/qris.jpg" alt="QRIS Ndalem Pleret" className="w-full h-full object-contain" />
+          </div>
+          <div className="text-xs text-muted-foreground leading-relaxed">
+            Scan → ketik nominal di atas → konfirmasi PIN<br/>
+            (GoPay, OVO, Dana, m-Banking, dll.)
+          </div>
+        </div>
+      )}
+
+      {/* Next steps */}
+      {!paymentConfirmed && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-xl p-3 text-xs text-amber-800 dark:text-amber-300">
+          <p className="font-semibold mb-1">Langkah selanjutnya:</p>
+          <ol className="list-decimal list-inside space-y-0.5">
+            {hasDynamicQris ? (
+              <>
+                <li>Scan QR di atas → konfirmasi pembayaran</li>
+                <li>Booking otomatis dikonfirmasi setelah pembayaran</li>
+                <li>Kirim kode pesanan ke WhatsApp kami untuk info check-in</li>
+              </>
+            ) : (
+              <>
+                <li>Scan QR → ketik nominal <strong>{formatIDR(uniqueAmount ?? total)}</strong></li>
+                <li>Kirim bukti bayar + kode pesanan ke WhatsApp</li>
+                <li>Booking dikonfirmasi dalam 1×24 jam</li>
+              </>
+            )}
+          </ol>
+        </div>
+      )}
+
+      {/* WhatsApp CTA */}
+      <a href={buildWhatsApp()} target="_blank" rel="noopener noreferrer" className="block">
+        <Button className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white h-12 rounded-xl font-semibold">
+          <ExternalLink className="w-4 h-4 mr-2" />
+          {paymentConfirmed ? "Hubungi Kami untuk Info Check-in" : "Kirim Konfirmasi ke WhatsApp"}
+        </Button>
+      </a>
+
+      <p className="text-xs text-center text-muted-foreground">
+        Butuh bantuan? Hubungi kami via WhatsApp · <strong>0851-2131-4631</strong>
+      </p>
     </div>
   );
 }
@@ -286,8 +441,8 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
               <h2 className="text-lg font-bold font-display text-foreground">
                 {step === 1 && "Pilih Tanggal"}
                 {step === 2 && "Detail Tamu"}
-                {step === 3 && "Pembayaran"}
-                {step === 4 && "Pemesanan Berhasil!"}
+                {step === 3 && "Konfirmasi Pesanan"}
+                {step === 4 && "Pembayaran QRIS"}
               </h2>
               {step < 4 && (
                 <div className="flex gap-1.5 mt-1">
@@ -477,12 +632,12 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
               </div>
             )}
 
-            {/* ── STEP 3: Payment Summary + QRIS ── */}
+            {/* ── STEP 3: Konfirmasi Pesanan ── */}
             {step === 3 && (
               <div className="p-6 space-y-5">
                 {/* Order Summary */}
                 <div className="bg-secondary/40 rounded-xl p-4 space-y-2 text-sm">
-                  <h3 className="font-bold text-foreground mb-3">Ringkasan Pemesanan</h3>
+                  <h3 className="font-bold text-foreground mb-3">Ringkasan Pesanan</h3>
                   <div className="flex justify-between"><span className="text-muted-foreground">{selectedUnit?.name}</span></div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{checkIn && format(checkIn, "dd MMM", { locale: idLocale })} – {checkOut && format(checkOut, "dd MMM yyyy", { locale: idLocale })}</span>
@@ -505,26 +660,26 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                   </div>
                 </div>
 
-                {/* QRIS */}
-                <div className="bg-white dark:bg-card border border-border rounded-xl p-4 text-center">
-                  <div className="text-sm font-semibold mb-2 text-foreground">Scan QRIS untuk Membayar</div>
-                  <div className="text-xl font-bold text-primary mb-3">{formatIDR(total)}</div>
-                  <div className="mx-auto w-52 h-52 rounded-xl overflow-hidden border border-border mb-3 bg-white dark:bg-card p-1">
-                    <img src="/qris.jpg" alt="QRIS Ndalem Pleret" className="w-full h-full object-contain" />
+                {/* Guest summary */}
+                <div className="bg-muted/40 rounded-xl p-4 text-sm space-y-1">
+                  <p className="font-medium text-foreground mb-2">Detail Pemesan</p>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <User className="w-3.5 h-3.5 shrink-0" />
+                    <span>{guestForm.name} · {guestForm.guestCount} tamu</span>
                   </div>
-                  <div className="text-xs text-muted-foreground leading-relaxed">
-                    Scan kode QR di atas menggunakan aplikasi perbankan atau e-wallet Anda (GoPay, OVO, Dana, dll.)
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Phone className="w-3.5 h-3.5 shrink-0" />
+                    <span>{guestForm.phone}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Mail className="w-3.5 h-3.5 shrink-0" />
+                    <span>{guestForm.email}</span>
                   </div>
                 </div>
 
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-xl p-4 text-sm text-amber-800 dark:text-amber-300 space-y-1">
-                  <div className="font-semibold">Langkah selanjutnya:</div>
-                  <ol className="list-decimal list-inside space-y-1 text-xs">
-                    <li>Bayar sesuai nominal di atas via QRIS</li>
-                    <li>Klik tombol "Konfirmasi Pemesanan" di bawah</li>
-                    <li>Kirim bukti bayar ke WhatsApp kami</li>
-                    <li>Booking dikonfirmasi dalam 1×24 jam</li>
-                  </ol>
+                <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-2">
+                  <QrCode className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
+                  <span>Setelah konfirmasi, kode QRIS dengan nominal tepat akan ditampilkan untuk dibayar</span>
                 </div>
 
                 {formError && (
@@ -535,55 +690,20 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
               </div>
             )}
 
-            {/* ── STEP 4: Confirmation ── */}
+            {/* ── STEP 4: Payment (QRIS) ── */}
             {step === 4 && bookingResult && (
-              <div className="p-6 space-y-5">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
-                  </div>
-                  <h3 className="text-xl font-bold font-display text-foreground">Pemesanan Diterima!</h3>
-                  <p className="text-muted-foreground text-sm mt-2">Simpan kode pemesanan Anda dan kirim bukti pembayaran ke WhatsApp kami untuk konfirmasi.</p>
-                </div>
-
-                {/* Booking Reference */}
-                <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 text-center">
-                  <div className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">Kode Pemesanan</div>
-                  <div className="text-2xl font-bold font-mono text-primary tracking-wider">{bookingResult.bookingRef}</div>
-                  <button onClick={copyRef} className="mt-2 flex items-center gap-1.5 mx-auto text-xs text-muted-foreground hover:text-primary transition-colors">
-                    {copiedRef ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
-                    {copiedRef ? "Tersalin!" : "Salin kode"}
-                  </button>
-                </div>
-
-                {/* Summary */}
-                <div className="space-y-2 text-sm">
-                  {[
-                    { label: "Unit", value: selectedUnit?.name },
-                    { label: "Tamu", value: guestForm.name },
-                    { label: "Check-in", value: checkIn ? format(checkIn, "EEEE, dd MMMM yyyy", { locale: idLocale }) : "" },
-                    { label: "Check-out", value: checkOut ? format(checkOut, "EEEE, dd MMMM yyyy", { locale: idLocale }) : "" },
-                    { label: "Durasi", value: `${nights} malam` },
-                    { label: "Total Bayar", value: formatIDR(total), bold: true },
-                  ].map(({ label, value, bold }) => (
-                    <div key={label} className="flex justify-between">
-                      <span className="text-muted-foreground">{label}</span>
-                      <span className={bold ? "font-bold text-primary" : "font-medium"}>{value}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <a href={buildWhatsApp()} target="_blank" rel="noopener noreferrer" className="block">
-                  <Button className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white h-12 rounded-xl font-semibold">
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Kirim Konfirmasi ke WhatsApp
-                  </Button>
-                </a>
-
-                <p className="text-xs text-center text-muted-foreground">
-                  Bukti pembayaran & kode booking akan kami proses dalam 1×24 jam.
-                </p>
-              </div>
+              <Step4Payment
+                bookingResult={bookingResult}
+                selectedUnit={selectedUnit}
+                checkIn={checkIn}
+                checkOut={checkOut}
+                nights={nights}
+                total={total}
+                guestForm={guestForm}
+                copiedRef={copiedRef}
+                onCopyRef={copyRef}
+                buildWhatsApp={buildWhatsApp}
+              />
             )}
           </div>
 
@@ -602,12 +722,15 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
               )}
               {step === 2 && (
                 <Button onClick={handleStep2Continue} className="flex-1 rounded-xl h-12 font-semibold text-base">
-                  Lanjut ke Pembayaran <ChevronRight className="w-4 h-4 ml-1" />
+                  Konfirmasi Detail <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               )}
               {step === 3 && (
                 <Button onClick={handleSubmitBooking} disabled={isSubmitting} className="flex-1 rounded-xl h-12 font-semibold text-base">
-                  {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Memproses...</> : "Konfirmasi Pemesanan"}
+                  {isSubmitting
+                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Membuat pesanan...</>
+                    : <><QrCode className="w-4 h-4 mr-2" /> Konfirmasi &amp; Bayar</>
+                  }
                 </Button>
               )}
             </div>

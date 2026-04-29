@@ -49,13 +49,23 @@ export const bookings = pgTable("bookings", {
   checkIn: date("check_in").notNull(),          // YYYY-MM-DD
   checkOut: date("check_out").notNull(),         // YYYY-MM-DD
   nights: integer("nights").notNull(),
-  totalPrice: integer("total_price").notNull(),  // in IDR
+  totalPrice: integer("total_price").notNull(),  // in IDR (tanpa deposit)
   status: text("status").notNull().default("pending"),       // pending | confirmed | cancelled
   paymentStatus: text("payment_status").notNull().default("pending"), // pending | paid
   guestCount: integer("guest_count").notNull().default(1),
   notes: text("notes"),
   adminNotes: text("admin_notes"),
   createdAt: timestamp("created_at").defaultNow(),
+
+  // ── QRIS Payment fields ────────────────────────────────────────────────────
+  // uniqueAmount = totalPrice + deposit(500000) + suffix unik 1-999
+  // Digunakan untuk memverifikasi pembayaran dari mutasi bank (mode static QRIS)
+  // ATAU sebagai gross_amount untuk Midtrans dynamic QRIS
+  uniqueAmount: integer("unique_amount"),
+
+  // Midtrans dynamic QRIS — diisi hanya jika MIDTRANS_SERVER_KEY di-set
+  midtransTransactionId: text("midtrans_transaction_id"),
+  qrisExpiry: text("qris_expiry"),  // "YYYY-MM-DD HH:mm:ss" format
 });
 
 export const insertBookingSchema = z.object({
