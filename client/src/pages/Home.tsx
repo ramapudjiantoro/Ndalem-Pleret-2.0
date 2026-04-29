@@ -247,7 +247,7 @@ export default function Home() {
       </section>
 
       {/* ── ABOUT ── */}
-      <section id="about" className="py-24 bg-background relative overflow-hidden">
+      <section id="about" className="py-16 bg-background relative overflow-hidden">
         <div className="absolute top-0 right-0 w-1/3 h-full bg-secondary/30 -skew-x-12 translate-x-1/4 pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -277,23 +277,20 @@ export default function Home() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }}
-                className="space-y-5 text-muted-foreground"
+                className="space-y-4 text-muted-foreground"
               >
                 <p className="leading-relaxed">
-                  Ndalem Pleret bukan sekadar akomodasi — melainkan rumah yang siap menyambut kepulangan Anda di Surakarta. Sebagai <strong className="text-foreground">guest house &amp; villa keluarga private</strong> di Solo, kami menyediakan dua unit rumah utuh yang dirancang untuk memberikan kehangatan dan privasi maksimal bagi keluarga atau rombongan Anda.
+                  <strong className="text-foreground">Guest house &amp; villa keluarga private</strong> di Banjarsari, Solo — dua unit rumah utuh yang disewakan secara eksklusif. Tidak berbagi dengan tamu lain. Privasi 100%.
                 </p>
                 <p className="leading-relaxed">
-                  Terletak di lokasi tenang namun strategis di Banjarsari, Solo, <strong className="text-foreground">penginapan full house</strong> kami menjadi tempat berlindung yang sempurna setelah seharian menjelajahi kekayaan budaya, kuliner, dan destinasi wisata Kota Solo — dari Keraton Surakarta, Pasar Gede, Kampung Batik Laweyan, hingga Taman Sriwedari.
+                  Lokasi tenang namun strategis, ±10 menit dari Keraton Solo, Pasar Gede, dan Stasiun Balapan. Ideal untuk liburan keluarga, arisan, reuni, staycation, maupun kunjungan bisnis ke Surakarta.
                 </p>
-                <p className="leading-relaxed">
-                  Berbeda dengan hotel konvensional, di Ndalem Pleret Anda mendapatkan <strong className="text-foreground">seluruh rumah eksklusif untuk grup Anda sendiri</strong>. Cocok untuk liburan keluarga, arisan, reuni sekolah, staycation, maupun kunjungan bisnis ke Solo atau Surakarta.
-                </p>
-                <ul className="space-y-2.5">
+                <ul className="space-y-2 pt-1">
                   {[
-                    "2 unit rumah utuh — privasi penuh, tidak berbagi dengan tamu lain",
-                    "Lokasi strategis ±10 menit dari Keraton Solo & Pasar Gede",
-                    "Ideal untuk keluarga, arisan, reuni, hingga rombongan bisnis",
-                    "Lingkungan perumahan bersih, aman, dan tenang 24 jam",
+                    "2 unit rumah utuh — tidak berbagi dengan tamu lain",
+                    "Lokasi ±10 menit dari Keraton Solo & Pasar Gede",
+                    "Kapasitas 4–6 orang per unit, fasilitas lengkap",
+                    "Lingkungan perumahan bersih, aman, dan tenang",
                   ].map((item, i) => (
                     <li key={i} className="flex items-center gap-3 text-foreground font-medium text-sm">
                       <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs shrink-0">✓</div>
@@ -301,7 +298,7 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <Button onClick={() => openBooking()} className="mt-2 rounded-full px-6">
+                <Button onClick={() => openBooking()} className="mt-1 rounded-full px-6">
                   Pesan Sekarang
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
@@ -322,7 +319,7 @@ export default function Home() {
           <motion.div
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} transition={{ duration: 0.6 }}
-            className="text-center mb-14"
+            className="text-center mb-10"
           >
             <p className="text-white/60 uppercase tracking-widest text-xs font-semibold mb-3">2 Unit Tersedia</p>
             <h2 className="text-3xl md:text-5xl font-display font-bold text-white">Pilih Unit Anda</h2>
@@ -400,7 +397,7 @@ export default function Home() {
       <AvailabilityCalendar onOpenBooking={(id) => openBooking(id)} />
 
       {/* ── FACILITIES ── */}
-      <section id="facilities" className="py-24 bg-secondary/30">
+      <section id="facilities" className="py-16 bg-secondary/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading title="Fasilitas Kami" subtitle="Dirancang untuk Kenyamanan Anda" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -412,13 +409,13 @@ export default function Home() {
       </section>
 
       {/* ── IDEAL FOR / USE CASES ── */}
-      <section className="py-20 bg-background">
+      <section className="py-14 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading
             title="Cocok untuk Berbagai Kebutuhan"
             subtitle="Siapa yang Menginap di Ndalem Pleret?"
           />
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-12">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             {[
               { emoji: "👨‍👩‍👧‍👦", label: "Liburan Keluarga", desc: "Privasi penuh untuk quality time" },
               { emoji: "🎉", label: "Arisan & Reuni", desc: "Ruang luas, dapur lengkap" },
@@ -473,16 +470,18 @@ export default function Home() {
       </section>
 
       {/* ── GALLERY ── */}
-      <section id="gallery" className="py-24 bg-background">
+      <section id="gallery" className="py-16 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading title="Galeri Foto" subtitle="Lihat ke Dalam" />
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {GALLERY_IMAGES.map((img, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }} transition={{ duration: 0.5, delay: index * 0.08 }}
-                className={`relative rounded-2xl overflow-hidden group shadow-md cursor-pointer border border-border/50 ${index === 0 ? "col-span-2 row-span-2 aspect-square sm:aspect-auto" : "aspect-square"}`}
+                className={`relative rounded-2xl overflow-hidden group shadow-md cursor-pointer border border-border/50 ${
+                  index === 4 ? "col-span-2 sm:col-span-1 aspect-video sm:aspect-square" : "aspect-square"
+                }`}
               >
                 <img src={img.src} alt={img.alt} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
@@ -503,7 +502,7 @@ export default function Home() {
       <FAQSection />
 
       {/* ── LOCATION & CONTACT ── */}
-      <section id="location" className="py-24 bg-secondary/30">
+      <section id="location" className="py-16 bg-secondary/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading
             title="Kunjungi Kami di Banjarsari, Solo"
