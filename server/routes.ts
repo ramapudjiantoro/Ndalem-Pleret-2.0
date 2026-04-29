@@ -5,13 +5,7 @@ import { insertBookingSchema, insertInquirySchema } from "@shared/schema";
 import { sendBookingReceived, sendBookingConfirmation, verifyEmailConfig } from "./email";
 import { createBookingCalendarEvents, deleteBookingCalendarEvents } from "./calendar";
 import { sendPushToAll, initPush, isPushReady, getPublicKey } from "./push";
-import {
-  isMidtransEnabled, chargeQris, fetchQrisImageBuffer, verifyWebhookSignature
-} from "./midtrans";
 import { z } from "zod";
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-const DEPOSIT = 500_000; // Rp 500.000 — deposit jaminan, sama di FE dan BE
 
 // ─── Simple admin auth middleware ─────────────────────────────────────────────
 const ADMIN_PASSWORD_ENV = process.env.ADMIN_PASSWORD || "ndalem2025";
@@ -110,16 +104,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(409).json({ message: "Maaf, tanggal yang Anda pilih sudah dipesan. Silakan pilih tanggal lain." });
       }
 
-      // Calculate total (deposit tidak masuk totalPrice DB, dihitung saat pembayaran)
+      // Calculate total
       const totalPrice = unit.pricePerNight * nights;
 
-      // ── Unique amount: totalPrice + deposit + suffix unik 1-999 ──────────────
-      // Suffix memungkinkan admin memverifikasi pembayaran dari mutasi rekening.
-      // Jika Midtrans aktif, uniqueAmount juga menjadi gross_amount ke Midtrans.
-      const uniqueSuffix = Math.floor(Math.random() * 999) + 1;
-      const uniqueAmount = totalPrice + DEPOSIT + uniqueSuffix;
-
-      // Create booking (Midtrans fields diisi setelah charge, lewat update terpisah)
+      // Create booking
       const booking = await storage.createBooking({
         unitId,
         guestName,
@@ -131,28 +119,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         totalPrice,
         guestCount: guestCount ?? 1,
         notes,
-        uniqueAmount,
       });
 
-      // ── Try Midtrans dynamic QRIS (opsional, fallback ke static QRIS jika gagal) ─
-      let midtransTransactionId: string | null = null;
-      let qrisExpiry: string | null = null;
-
-      if (isMidtransEnabled()) {
-        try {
-          const midtrans = await chargeQris(booking.bookingRef, uniqueAmount);
-          midtransTransactionId = midtrans.transactionId;
-          qrisExpiry = midtrans.expiryTime;
-          await storage.updateMidtransInfo(booking.id, midtrans.transactionId, midtrans.expiryTime);
-          console.log(`✅ Midtrans QRIS created for ${booking.bookingRef}: ${midtrans.transactionId}`);
-        } catch (err) {
-          console.error(`⚠️  Midtrans charge failed for ${booking.bookingRef}, fallback to static QRIS:`, err);
-          // Tidak throw — booking tetap berhasil, customer bayar via static QRIS
-        }
-      }
-
-      // Sertakan Midtrans fields dalam response agar frontend bisa tampilkan QR yang benar
-      res.status(201).json({ ...booking, midtransTransactionId, qrisExpiry });
+      res.status(201).json(booking);
 
       // Email 1: kirim notif "pesanan diterima + instruksi bayar" — BUKAN konfirmasi final
       sendBookingReceived({
@@ -211,87 +180,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     // Also fetch unit name
     const unit = await storage.getUnit(booking.unitId);
     res.json({ ...booking, unitName: unit?.name ?? "Unknown Unit" });
-  });
-
-  // ── Public: QRIS Image Proxy ───────────────────────────────────────────────
-  // Midtrans QR image memerlukan auth header — tidak bisa di-load langsung dari browser.
-  // Endpoint ini fetch dari Midtrans server-side lalu pipe ke client.
-  app.get("/api/bookings/:ref/qris-image", async (req, res) => {
-    try {
-      const booking = await storage.getBookingByRef(req.params.ref);
-      if (!booking?.midtransTransactionId) {
-        return res.status(404).json({ message: "No dynamic QRIS for this booking" });
-      }
-
-      const { buffer, contentType } = await fetchQrisImageBuffer(booking.midtransTransactionId);
-      res.set("Content-Type", contentType);
-      res.set("Cache-Control", "public, max-age=3600"); // QR boleh di-cache 1 jam
-      res.send(buffer);
-    } catch (err) {
-      console.error("QRIS image proxy error:", err);
-      res.status(502).json({ message: "Gagal mengambil gambar QRIS" });
-    }
-  });
-
-  // ── Public: Midtrans Payment Webhook ──────────────────────────────────────
-  // Midtrans memanggil endpoint ini saat pembayaran berhasil/gagal.
-  // Pastikan URL ini didaftarkan di Midtrans Dashboard → Settings → Payment Notification URL:
-  //   https://ndalempleret.com/api/midtrans-webhook
-  app.post("/api/midtrans-webhook", async (req, res) => {
-    try {
-      const {
-        order_id,
-        status_code,
-        gross_amount,
-        transaction_status,
-        signature_key,
-        fraud_status,
-      } = req.body as Record<string, string>;
-
-      // Verify signature — tolak request palsu
-      if (!verifyWebhookSignature(order_id, status_code, gross_amount, signature_key)) {
-        console.warn(`⚠️  Midtrans webhook signature mismatch for order ${order_id}`);
-        return res.status(403).json({ message: "Invalid signature" });
-      }
-
-      // Hanya proses "settlement" (lunas) atau "capture" (kartu kredit, tapi kita tidak pakai)
-      // "pending" = belum bayar, "deny"/"cancel"/"expire" = gagal
-      const isSettled =
-        transaction_status === "settlement" ||
-        (transaction_status === "capture" && fraud_status === "accept");
-
-      if (isSettled) {
-        const booking = await storage.getBookingByRef(order_id);
-        if (booking && booking.paymentStatus !== "paid") {
-          await storage.updatePaymentStatusByRef(order_id, "paid");
-          console.log(`✅ Midtrans payment confirmed for ${order_id}`);
-
-          // Kirim email konfirmasi ke tamu
-          const unit = await storage.getUnit(booking.unitId);
-          sendBookingConfirmation({
-            guestEmail: booking.guestEmail,
-            bookingRef: booking.bookingRef,
-            guestName: booking.guestName,
-            unitName: unit?.name ?? "Ndalem Pleret",
-            checkIn: booking.checkIn,
-            checkOut: booking.checkOut,
-            nights: booking.nights,
-            totalPrice: booking.totalPrice,
-            guestCount: booking.guestCount,
-          }).catch((err) => console.error("Confirmation email failed:", err));
-
-          // Auto-confirm booking status juga
-          await storage.updateBookingStatus(booking.id, "confirmed");
-        }
-      }
-
-      // Midtrans expects HTTP 200 regardless of our processing result
-      res.status(200).json({ message: "OK" });
-    } catch (err) {
-      console.error("Midtrans webhook error:", err);
-      // Tetap 200 agar Midtrans tidak retry berulang-ulang
-      res.status(200).json({ message: "OK" });
-    }
   });
 
   // ── Admin: Test Email ──────────────────────────────────────────────────────

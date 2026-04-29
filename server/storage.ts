@@ -78,16 +78,11 @@ export interface IStorage {
     totalPrice: number;
     guestCount: number;
     notes?: string;
-    uniqueAmount?: number;
-    midtransTransactionId?: string;
-    qrisExpiry?: string;
   }): Promise<Booking>;
-  updateMidtransInfo(id: number, midtransTransactionId: string, qrisExpiry: string): Promise<void>;
   getBookingByRef(ref: string): Promise<Booking | undefined>;
   listBookings(): Promise<(Booking & { unitName: string })[]>;
   updateBookingStatus(id: number, status: string): Promise<Booking | undefined>;
   updatePaymentStatus(id: number, paymentStatus: string): Promise<Booking | undefined>;
-  updatePaymentStatusByRef(ref: string, paymentStatus: string): Promise<Booking | undefined>;
   updateAdminNotes(id: number, adminNotes: string): Promise<Booking | undefined>;
   updateBookingDates(id: number, checkIn: string, checkOut: string, nights: number, totalPrice: number): Promise<Booking | undefined>;
   deleteBooking(id: number): Promise<{ bookingRef: string } | undefined>;
@@ -260,9 +255,6 @@ export class DatabaseStorage implements IStorage {
     totalPrice: number;
     guestCount: number;
     notes?: string;
-    uniqueAmount?: number;
-    midtransTransactionId?: string;
-    qrisExpiry?: string;
   }): Promise<Booking> {
     const bookingRef = generateBookingRef();
     const [booking] = await db
@@ -275,13 +267,6 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return booking;
-  }
-
-  async updateMidtransInfo(id: number, midtransTransactionId: string, qrisExpiry: string): Promise<void> {
-    await db
-      .update(bookings)
-      .set({ midtransTransactionId, qrisExpiry })
-      .where(eq(bookings.id, id));
   }
 
   async getBookingByRef(ref: string): Promise<Booking | undefined> {
@@ -311,9 +296,6 @@ export class DatabaseStorage implements IStorage {
         notes: bookings.notes,
         adminNotes: bookings.adminNotes,
         createdAt: bookings.createdAt,
-        uniqueAmount: bookings.uniqueAmount,
-        midtransTransactionId: bookings.midtransTransactionId,
-        qrisExpiry: bookings.qrisExpiry,
         unitName: units.name,
       })
       .from(bookings)
@@ -344,14 +326,6 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async updatePaymentStatusByRef(ref: string, paymentStatus: string): Promise<Booking | undefined> {
-    const [updated] = await db
-      .update(bookings)
-      .set({ paymentStatus })
-      .where(eq(bookings.bookingRef, ref))
-      .returning();
-    return updated;
-  }
 
   async updateAdminNotes(id: number, adminNotes: string): Promise<Booking | undefined> {
     const [updated] = await db
