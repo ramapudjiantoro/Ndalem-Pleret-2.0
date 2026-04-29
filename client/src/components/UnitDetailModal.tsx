@@ -145,19 +145,19 @@ export function UnitDetailModal({ slug, onClose, onBook }: UnitDetailModalProps)
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 60 }}
           transition={{ type: "spring", damping: 28, stiffness: 300 }}
-          className="relative z-10 w-full sm:max-w-3xl bg-background rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[95vh] flex flex-col overflow-hidden"
+          className="relative z-10 w-full sm:max-w-3xl bg-background rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[95vh] flex flex-col"
         >
-          {/* Close */}
+          {/* Close — di luar overflow container agar tidak terpotong rounded corner */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-20 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 transition-colors"
+            className="absolute top-4 right-4 z-30 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors shadow-lg"
           >
             <X className="w-4 h-4" />
           </button>
 
           <div className="flex-1 overflow-y-auto">
-            {/* Photo carousel */}
-            <div className="relative h-64 sm:h-80 bg-black">
+            {/* Photo carousel — overflow-hidden di sini saja, bukan di parent modal */}
+            <div className="relative h-64 sm:h-80 bg-black rounded-t-3xl sm:rounded-t-2xl overflow-hidden">
               <img
                 src={photos[photoIdx].src}
                 alt={photos[photoIdx].caption}
@@ -247,12 +247,21 @@ export function UnitDetailModal({ slug, onClose, onBook }: UnitDetailModalProps)
 
           {/* Footer CTA */}
           <div className="px-5 py-4 border-t border-border/50 bg-white dark:bg-card">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Harga per malam</p>
+                <p className="font-bold text-lg text-primary leading-tight">
+                  {formatIDR(unit.pricePerNight)}
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground text-right">+ deposit<br/>Rp500.000</p>
+            </div>
             <Button
               onClick={() => { onClose(); onBook(unit.id); }}
               className="w-full h-12 rounded-xl font-bold text-base"
             >
               <Calendar className="w-4 h-4 mr-2" />
-              Pesan {unit.name} — {formatIDR(unit.pricePerNight)}/malam
+              Pesan {unit.name}
             </Button>
           </div>
         </motion.div>
