@@ -40,7 +40,7 @@ export function Navbar({ onOpenBooking }: NavbarProps) {
           : "top-0 left-0 right-0 bg-transparent py-5 text-white"
       )}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="px-4 sm:px-5">
         <div className="flex justify-between items-center">
           {/* Logo */}
           <Link to="hero" smooth duration={500} className="cursor-pointer flex items-center gap-2.5">

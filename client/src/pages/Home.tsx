@@ -163,10 +163,10 @@ export default function Home() {
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-xl md:text-2xl text-white/85 max-w-2xl mx-auto mb-10 font-light leading-relaxed"
+            className="text-base md:text-lg text-white/80 max-w-xl mx-auto mb-10 font-light leading-relaxed"
           >
-            Sewa guest house &amp; villa keluarga private full-house di Solo.<br className="hidden sm:block" />
-            {" "}Privasi 100%, fasilitas lengkap, lokasi strategis dekat Keraton &amp; Stasiun Balapan.
+            Guest house &amp; villa keluarga private full-house. Privasi 100%,
+            fasilitas lengkap, ±10 menit dari Keraton Solo.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }}
@@ -357,6 +357,12 @@ export default function Home() {
                     <img src={UNIT_PHOTOS[u.index]} alt={u.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                     <div className="absolute bottom-2 left-3 text-white font-bold font-display text-sm leading-tight">{u.name}</div>
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                      <span className="bg-white/90 text-primary font-semibold text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
+                        <Search className="w-3.5 h-3.5" /> Lihat Detail &amp; Foto
+                      </span>
+                    </div>
                   </div>
                   {/* Info compact */}
                   <div className="p-3 sm:p-5">
