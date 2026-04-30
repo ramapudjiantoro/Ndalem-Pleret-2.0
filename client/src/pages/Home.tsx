@@ -426,35 +426,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── IDEAL FOR / USE CASES ── */}
+      {/* ── LOKASI STRATEGIS ── */}
       <section className="py-14 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionHeading
-            title="Cocok untuk Berbagai Kebutuhan"
-            subtitle="Siapa yang Menginap di Ndalem Pleret?"
-          />
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-            {[
-              { emoji: "👨‍👩‍👧‍👦", label: "Liburan Keluarga", desc: "Privasi penuh untuk quality time" },
-              { emoji: "🎉", label: "Arisan & Reuni", desc: "Ruang luas, dapur lengkap" },
-              { emoji: "🎂", label: "Staycation", desc: "Rayakan momen spesial bersama" },
-              { emoji: "💼", label: "Kunjungan Bisnis", desc: "Nyaman, tenang, produktif" },
-              { emoji: "🏫", label: "Reuni Sekolah", desc: "Kapasitas hingga 12 orang" },
-              { emoji: "🕌", label: "Wisata Religi", desc: "Dekat destinasi budaya Solo" },
-            ].map((item) => (
-              <motion.div
-                key={item.label}
-                initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }} transition={{ duration: 0.5 }}
-                className="bg-secondary/40 hover:bg-primary/10 transition-colors rounded-2xl p-5 text-center border border-border/40"
-              >
-                <div className="text-3xl mb-3">{item.emoji}</div>
-                <p className="font-bold text-sm font-display mb-1">{item.label}</p>
-                <p className="text-xs text-muted-foreground">{item.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-
           {/* Proximity to landmarks — targets "penginapan dekat X solo" queries */}
           <div className="bg-primary/5 border border-primary/15 rounded-2xl p-8">
             <h3 className="text-xl font-bold font-display mb-2 text-center">
