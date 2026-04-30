@@ -119,60 +119,45 @@ export function TestimonialsSection() {
           </div>
         </motion.div>
 
-        {/* Two-column staggered overlap — kanan offset ke bawah, kartu bertumpuk */}
-        <div className="flex gap-3 sm:gap-4 items-start">
-          {[0, 1].map((col) => {
-            const colItems = TESTIMONIALS.filter((_, i) => i % 2 === col);
-            return (
-              <div key={col} className={`flex-1 flex flex-col ${col === 1 ? "mt-10" : ""}`}>
-                {colItems.map((t, colIdx) => {
-                  const isLast = colIdx === colItems.length - 1;
-                  return (
-                    <motion.div
-                      key={colIdx}
-                      initial={{ opacity: 0, y: 24 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.45, delay: colIdx * 0.1 + col * 0.06 }}
-                      style={{
-                        zIndex: (colIdx + 1) * 10,
-                        marginBottom: isLast ? 0 : -22,
-                      }}
-                      className="relative bg-white dark:bg-card rounded-2xl p-4 pb-10 border border-border/50 shadow-md"
-                    >
-                      <Quote className="absolute top-3 right-3 w-5 h-5 text-primary/10" />
-                      {/* Header */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
-                          {t.name[0].toUpperCase()}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-xs sm:text-sm leading-tight truncate">{t.name}</p>
-                          <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{t.date}</p>
-                        </div>
-                        <div className="shrink-0 bg-secondary/60 rounded-full px-1.5 py-0.5 flex items-center gap-0.5">
-                          <GoogleLogo />
-                          <span className="text-[10px] text-muted-foreground font-medium hidden sm:inline">Maps</span>
-                        </div>
-                      </div>
-                      {/* Stars */}
-                      <div className="flex gap-0.5 mb-2">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star key={i} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                        ))}
-                      </div>
-                      {/* Text */}
-                      <p className="text-[11px] sm:text-xs leading-relaxed text-muted-foreground line-clamp-4">"{t.text}"</p>
-                      {/* Highlight */}
-                      <div className="mt-2 inline-block bg-secondary text-[10px] sm:text-xs text-foreground/60 px-2 py-0.5 rounded-full font-medium">
-                        {t.highlight}
-                      </div>
-                    </motion.div>
-                  );
-                })}
+        {/* 2-column grid — rapih, kompak di mobile */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          {TESTIMONIALS.map((t, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.45, delay: i * 0.07 }}
+              className="relative bg-white dark:bg-card rounded-2xl p-3 sm:p-5 border border-border/50 shadow-sm"
+            >
+              <Quote className="absolute top-3 right-3 w-4 h-4 text-primary/10" />
+              {/* Header */}
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                  {t.name[0].toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-xs sm:text-sm leading-tight truncate">{t.name}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{t.date}</p>
+                </div>
+                <div className="shrink-0 bg-secondary/60 rounded-full p-1 sm:px-1.5 sm:py-0.5 flex items-center gap-0.5">
+                  <GoogleLogo />
+                </div>
               </div>
-            );
-          })}
+              {/* Stars */}
+              <div className="flex gap-0.5 mb-1.5">
+                {Array.from({ length: 5 }).map((_, j) => (
+                  <Star key={j} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                ))}
+              </div>
+              {/* Text */}
+              <p className="text-[11px] sm:text-xs leading-relaxed text-muted-foreground line-clamp-4">"{t.text}"</p>
+              {/* Highlight */}
+              <div className="mt-2 inline-block bg-secondary text-[10px] sm:text-xs text-foreground/60 px-2 py-0.5 rounded-full font-medium">
+                {t.highlight}
+              </div>
+            </motion.div>
+          ))}
         </div>
 
         {/* Link ke semua ulasan Google */}

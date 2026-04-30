@@ -44,9 +44,9 @@ const GALLERY_IMAGES = [
 
 const UNIT_FEATURES = [
   // Ndalem Belakang
-  ["Kapasitas 4–6 Orang", "Ruang Keluarga Luas + Smart TV", "Dapur Lengkap Siap Pakai", "Taman Pribadi & Parkir", "AC di Setiap Kamar · Wi-Fi di Seluruh Area"],
+  ["Kapasitas 4–6 Orang", "Ruang Keluarga + Smart TV", "Dapur Lengkap Siap Pakai", "AC di Setiap Kamar · Wi-Fi di Seluruh Area"],
   // Ndalem Tengah
-  ["Kapasitas 4–6 Orang", "Ruang Keluarga + Smart TV", "Dapur Lengkap Siap Pakai", "Area Parkir Luas & Aman", "AC di Setiap Kamar · Wi-Fi di Seluruh Area"],
+  ["Kapasitas 4–6 Orang", "Ruang Keluarga + Smart TV", "Dapur Lengkap Siap Pakai", "AC di Setiap Kamar · Wi-Fi di Seluruh Area"],
 ];
 
 const TRUST_STATS = [
@@ -159,7 +159,7 @@ export default function Home() {
             className="text-5xl md:text-7xl font-display font-bold mb-6 leading-tight text-shadow"
           >
             Kediaman Hangat di<br />
-            <span className="text-primary drop-shadow-[0_2px_28px_rgba(201,124,55,0.75)]">Jantung Solo</span>
+            <span className="text-amber-400 italic drop-shadow-[0_2px_30px_rgba(251,191,36,0.45)]">Jantung Solo</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }}
@@ -361,7 +361,7 @@ export default function Home() {
                   {/* Info compact */}
                   <div className="p-3 sm:p-5">
                     <ul className="space-y-1.5 mb-3">
-                      {UNIT_FEATURES[u.index].slice(0, 4).map((f) => (
+                      {UNIT_FEATURES[u.index].map((f) => (
                         <li key={f} className="flex items-start gap-1.5 text-xs text-white/80 leading-snug">
                           <CheckCircle2 className="w-3 h-3 text-white/50 shrink-0 mt-0.5" />
                           {f}

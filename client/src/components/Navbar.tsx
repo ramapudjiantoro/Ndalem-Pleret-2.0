@@ -36,9 +36,7 @@ export function Navbar({ onOpenBooking }: NavbarProps) {
       className={cn(
         "fixed z-50 transition-all duration-300 ease-in-out overflow-hidden",
         solidNav
-          ? "bg-card/95 dark:bg-card/95 backdrop-blur-md shadow-lg border-border/40 " +
-            "top-4 left-4 right-4 rounded-2xl py-2 border " +
-            "md:top-0 md:left-0 md:right-0 md:rounded-none md:py-4 md:border-0 md:border-b md:shadow-md"
+          ? "top-4 left-4 right-4 rounded-2xl bg-card/95 dark:bg-card/95 backdrop-blur-md shadow-xl border border-border/40 py-2 md:py-3"
           : "top-0 left-0 right-0 bg-transparent py-5 text-white"
       )}
     >
