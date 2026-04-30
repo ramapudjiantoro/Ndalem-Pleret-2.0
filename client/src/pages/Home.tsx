@@ -158,11 +158,12 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }}
             className="text-5xl md:text-7xl font-display font-bold mb-6 leading-tight text-shadow"
           >
-            Kediaman Hangat di<br />Jantung Solo
+            Kediaman Hangat di<br />
+            <span className="text-primary drop-shadow-[0_2px_28px_rgba(201,124,55,0.75)]">Jantung Solo</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-10 font-light leading-relaxed"
+            className="text-xl md:text-2xl text-white/85 max-w-2xl mx-auto mb-10 font-light leading-relaxed"
           >
             Sewa guest house &amp; villa keluarga private full-house di Solo.<br className="hidden sm:block" />
             {" "}Privasi 100%, fasilitas lengkap, lokasi strategis dekat Keraton &amp; Stasiun Balapan.
@@ -430,14 +431,18 @@ export default function Home() {
       <section className="py-14 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Proximity to landmarks — targets "penginapan dekat X solo" queries */}
-          <div className="bg-primary/5 border border-primary/15 rounded-2xl p-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }} transition={{ duration: 0.6 }}
+            className="bg-primary/5 border border-primary/15 rounded-2xl p-5 sm:p-8"
+          >
             <h3 className="text-xl font-bold font-display mb-2 text-center">
               Lokasi Strategis di Tengah Kota Solo
             </h3>
-            <p className="text-muted-foreground text-sm text-center mb-8 max-w-xl mx-auto">
+            <p className="text-muted-foreground text-sm text-center mb-6 max-w-xl mx-auto leading-relaxed">
               Ndalem Pleret berada di Banjarsari, Surakarta — kawasan perumahan tenang yang mudah dijangkau dari seluruh penjuru Solo. Dekat semua destinasi wisata &amp; kuliner favorit Kota Solo.
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {[
                 { name: "Stasiun Solo Balapan", dist: "±2 km", time: "±7 menit" },
                 { name: "Keraton Surakarta", dist: "±4 km", time: "±12 menit" },
@@ -447,17 +452,22 @@ export default function Home() {
                 { name: "Solo Paragon Mall", dist: "±3 km", time: "±10 menit" },
                 { name: "Pasar Triwindu (Pasar Antik)", dist: "±2 km", time: "±8 menit" },
                 { name: "Bandara Adi Soemarmo", dist: "±10 km", time: "±25 menit" },
-              ].map((place) => (
-                <div key={place.name} className="flex items-start gap-3 bg-white dark:bg-card rounded-xl p-4 border border-border/40">
-                  <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold leading-tight">{place.name}</p>
+              ].map((place, idx) => (
+                <motion.div
+                  key={place.name}
+                  initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }} transition={{ duration: 0.35, delay: idx * 0.05 }}
+                  className="flex items-center gap-3 bg-white dark:bg-card rounded-xl px-4 py-3 border border-border/40 hover:border-primary/30 hover:bg-primary/5 transition-colors"
+                >
+                  <MapPin className="w-4 h-4 text-primary shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold leading-snug">{place.name}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{place.dist} · {place.time}</p>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -465,27 +475,25 @@ export default function Home() {
       <section id="gallery" className="py-16 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading title="Lihat ke Dalam" subtitle="Galeri Foto" />
-          {/* Masonry columns — compact, no wasted space */}
-          <div className="columns-2 md:columns-3 gap-3">
-            {GALLERY_IMAGES.map((img, index) => {
-              const aspects = ["3/4", "4/3", "3/4", "4/3", "16/10"];
-              return (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }} transition={{ duration: 0.5, delay: index * 0.08 }}
-                  className="break-inside-avoid mb-3 relative rounded-2xl overflow-hidden group shadow-md cursor-pointer border border-border/50"
-                  style={{ aspectRatio: aspects[index] }}
-                >
-                  <img src={img.src} alt={img.alt} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
-                    <span className="text-white font-medium text-xs translate-y-2 group-hover:translate-y-0 transition-transform duration-300 line-clamp-1">
-                      {img.alt.split(' — ')[0]}
-                    </span>
-                  </div>
-                </motion.div>
-              );
-            })}
+          {/* Gallery grid — foto pertama full-width, sisanya 2×2 */}
+          <div className="grid grid-cols-2 gap-3">
+            {GALLERY_IMAGES.map((img, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }} transition={{ duration: 0.5, delay: index * 0.08 }}
+                className={`relative rounded-2xl overflow-hidden group shadow-md cursor-pointer border border-border/50 ${
+                  index === 0 ? "col-span-2 aspect-video" : "aspect-square"
+                }`}
+              >
+                <img src={img.src} alt={img.alt} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
+                  <span className="text-white font-medium text-xs translate-y-2 group-hover:translate-y-0 transition-transform duration-300 line-clamp-1">
+                    {img.alt.split(' — ')[0]}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
@@ -572,14 +580,14 @@ export default function Home() {
       {/* ── FOOTER ── */}
       <footer className="bg-[#1c1510] text-white py-12 border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-start gap-8">
-            <div>
+          <div className="flex flex-col md:flex-row justify-between items-center md:items-start gap-8">
+            <div className="text-center md:text-left">
               <p className="text-2xl font-display font-bold mb-2">Ndalem Pleret</p>
               <p className="text-white/60 text-sm">Guest House &amp; Villa Keluarga Private di Solo</p>
               <p className="text-white/40 text-xs mt-2">Jl. Pleret Dalam IV No.6, Banjarsari, Surakarta 57100</p>
             </div>
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-wrap gap-6">
+            <div className="flex flex-col gap-4 items-center md:items-start">
+              <div className="flex flex-wrap gap-x-6 gap-y-2 justify-center md:justify-start">
                 {[
                   { name: "Beranda", to: "hero" }, { name: "Tentang", to: "about" },
                   { name: "Unit", to: "units" }, { name: "Fasilitas", to: "facilities" },
@@ -591,7 +599,7 @@ export default function Home() {
                   </Link>
                 ))}
               </div>
-              <div className="flex gap-4 items-center">
+              <div className="flex gap-4 items-center justify-center md:justify-start">
                 <a href="http://instagram.com/ndalempleret/" target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors">
                   <Instagram className="w-4 h-4" /> @ndalempleret
