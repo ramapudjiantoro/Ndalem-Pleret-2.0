@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { SectionHeading } from "@/components/SectionHeading";
-import { FacilityCard } from "@/components/FacilityCard";
 import { BookingModal } from "@/components/BookingModal";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
@@ -56,6 +55,15 @@ const TRUST_STATS = [
   { icon: Award, value: "6+ Tahun", label: "Beroperasi" },
   { icon: Shield, value: "100%", label: "Privasi Terjaga" },
 ];
+
+// ── WhatsApp Icon ─────────────────────────────────────────────────────────────
+function WhatsAppIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    </svg>
+  );
+}
 
 // ── Count-up animation component ─────────────────────────────────────────────
 function CountUp({ value, delay = 0 }: { value: string; delay?: number }) {
@@ -199,7 +207,7 @@ export default function Home() {
                 variant="outline"
                 className="rounded-full text-base px-8 h-14 bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm transition-all w-full sm:w-auto"
               >
-                <Phone className="w-5 h-5 mr-2" />
+                <WhatsAppIcon className="w-5 h-5 mr-2" />
                 Chat WhatsApp
               </Button>
             </a>
@@ -326,7 +334,7 @@ export default function Home() {
             <div className="w-12 h-0.5 bg-white/40 mx-auto mt-5" />
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-2 gap-3 sm:gap-5">
             {(() => {
               const UNIT_PHOTOS = [heroImg, tengahFrontImg];
               const STATIC_UNITS = [
@@ -340,42 +348,39 @@ export default function Home() {
 
               return cardItems.map((u) => (
                 <motion.div key={u.index} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: u.index * 0.1 }}
-                  className="bg-[hsl(20,45%,10%)] dark:bg-[hsl(25,35%,14%)] rounded-2xl border border-white/10 shadow-2xl overflow-hidden group hover:border-white/25 hover:bg-[hsl(20,45%,14%)] dark:hover:bg-[hsl(25,35%,18%)] transition-all cursor-pointer"
+                  className="bg-[hsl(20,45%,10%)] dark:bg-[hsl(25,35%,14%)] rounded-2xl border border-white/10 shadow-xl overflow-hidden group hover:border-white/25 hover:bg-[hsl(20,45%,14%)] dark:hover:bg-[hsl(25,35%,18%)] transition-all cursor-pointer"
                   onClick={() => openDetail(u.index)}
                 >
-                  <div className="relative h-56 overflow-hidden">
+                  {/* Foto compact */}
+                  <div className="relative h-32 sm:h-48 overflow-hidden">
                     <img src={UNIT_PHOTOS[u.index]} alt={u.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <div className="absolute bottom-4 left-4 text-white font-bold font-display text-lg">{u.name}</div>
-                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                      <span className="bg-white/90 text-primary font-semibold text-sm px-4 py-2 rounded-full flex items-center gap-2 shadow-lg">
-                        <Search className="w-4 h-4" /> Lihat Detail & Foto
-                      </span>
-                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                    <div className="absolute bottom-2 left-3 text-white font-bold font-display text-sm leading-tight">{u.name}</div>
                   </div>
-                  <div className="p-6">
-                    <ul className="space-y-2 mb-6">
-                      {UNIT_FEATURES[u.index].map((f) => (
-                        <li key={f} className="flex items-center gap-2.5 text-sm text-white/85">
-                          <div className="bg-white/20 p-0.5 rounded-full shrink-0">
-                            <CheckCircle2 className="w-3 h-3 text-white" />
-                          </div>
+                  {/* Info compact */}
+                  <div className="p-3 sm:p-5">
+                    <ul className="space-y-1.5 mb-3">
+                      {UNIT_FEATURES[u.index].slice(0, 4).map((f) => (
+                        <li key={f} className="flex items-start gap-1.5 text-xs text-white/80 leading-snug">
+                          <CheckCircle2 className="w-3 h-3 text-white/50 shrink-0 mt-0.5" />
                           {f}
                         </li>
                       ))}
                     </ul>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-white/15">
-                      <div className="flex items-end gap-1.5">
-                        <PriceDisplay currentPrice={u.price} variant="dark" size="lg" />
-                        <span className="text-white/60 text-sm leading-none pb-1">/malam</span>
+                    <div className="border-t border-white/10 pt-2.5">
+                      <div className="flex items-end gap-1 mb-2">
+                        <PriceDisplay currentPrice={u.price} variant="dark" size="sm" />
+                        <span className="text-white/50 text-xs leading-none pb-0.5">/mlm</span>
                       </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" onClick={(e) => { e.stopPropagation(); openDetail(u.index); }}
-                          className="flex-1 sm:flex-initial rounded-xl text-sm px-3 border-white/30 text-white hover:bg-white/10 bg-transparent">
-                          Lihat Detail
+                      <div className="flex gap-1.5">
+                        <Button variant="outline" size="sm"
+                          onClick={(e) => { e.stopPropagation(); openDetail(u.index); }}
+                          className="flex-1 rounded-lg text-xs h-8 border-white/25 text-white hover:bg-white/10 bg-transparent px-2">
+                          Detail
                         </Button>
-                        <Button onClick={(e) => { e.stopPropagation(); openBooking(u.id ?? undefined); }}
-                          className="flex-1 sm:flex-initial rounded-xl text-sm px-3 bg-white text-primary hover:bg-white/90 font-bold">
+                        <Button size="sm"
+                          onClick={(e) => { e.stopPropagation(); openBooking(u.id ?? undefined); }}
+                          className="flex-1 rounded-lg text-xs h-8 bg-white text-primary hover:bg-white/90 font-bold px-2">
                           Pesan
                         </Button>
                       </div>
@@ -400,9 +405,22 @@ export default function Home() {
       <section id="facilities" className="py-16 bg-secondary/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading title="Fasilitas Kami" subtitle="Dirancang untuk Kenyamanan Anda" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {FACILITIES.map((facility, index) => (
-              <FacilityCard key={index} {...facility} index={index} />
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.08 }}
+                className="bg-white dark:bg-card rounded-xl p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 border border-border/50 group transition-all duration-300"
+              >
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary group-hover:text-white transition-colors duration-300 text-primary shrink-0">
+                  <facility.icon className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-sm font-display mb-1.5 leading-snug">{facility.title}</h3>
+                <p className="text-muted-foreground text-xs leading-relaxed">{facility.description}</p>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -473,26 +491,27 @@ export default function Home() {
       <section id="gallery" className="py-16 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading title="Lihat ke Dalam" subtitle="Galeri Foto" />
-          <div className="grid grid-cols-2 sm:grid-cols-3 sm:auto-rows-[220px] gap-3">
-            {GALLERY_IMAGES.map((img, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }} transition={{ duration: 0.5, delay: index * 0.08 }}
-                className={`relative rounded-2xl overflow-hidden group shadow-md cursor-pointer border border-border/50 ${
-                  index === 0
-                    ? "row-span-1 sm:row-span-2 aspect-[4/3] sm:aspect-auto"
-                    : "aspect-square sm:aspect-auto"
-                }`}
-              >
-                <img src={img.src} alt={img.alt} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                  <span className="text-white font-medium text-sm translate-y-3 group-hover:translate-y-0 transition-transform duration-300">
-                    {img.alt}
-                  </span>
-                </div>
-              </motion.div>
-            ))}
+          {/* Masonry columns — compact, no wasted space */}
+          <div className="columns-2 md:columns-3 gap-3">
+            {GALLERY_IMAGES.map((img, index) => {
+              const aspects = ["3/4", "4/3", "3/4", "4/3", "16/10"];
+              return (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }} transition={{ duration: 0.5, delay: index * 0.08 }}
+                  className="break-inside-avoid mb-3 relative rounded-2xl overflow-hidden group shadow-md cursor-pointer border border-border/50"
+                  style={{ aspectRatio: aspects[index] }}
+                >
+                  <img src={img.src} alt={img.alt} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
+                    <span className="text-white font-medium text-xs translate-y-2 group-hover:translate-y-0 transition-transform duration-300 line-clamp-1">
+                      {img.alt.split(' — ')[0]}
+                    </span>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -541,7 +560,8 @@ export default function Home() {
                       <Calendar className="w-4 h-4 mr-2" /> Pesan Langsung
                     </Button>
                     <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline" className="w-full border-white/30 text-white hover:bg-white/10 h-11 rounded-xl">
+                      <Button variant="outline" className="w-full border-white/30 text-white hover:bg-white/10 h-11 rounded-xl flex items-center gap-2">
+                        <WhatsAppIcon className="w-4 h-4 shrink-0" />
                         Tanya-tanya dulu - WhatsApp
                       </Button>
                     </a>
@@ -604,7 +624,7 @@ export default function Home() {
                 </a>
                 <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors">
-                  <Phone className="w-4 h-4" /> +62 851 2131 4631
+                  <WhatsAppIcon className="w-4 h-4" /> +62 851 2131 4631
                 </a>
               </div>
             </div>

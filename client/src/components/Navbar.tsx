@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-scroll";
 import { Menu, X, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,7 +34,7 @@ export function Navbar({ onOpenBooking }: NavbarProps) {
   return (
     <nav
       className={cn(
-        "fixed z-50 transition-all duration-300 ease-in-out",
+        "fixed z-50 transition-all duration-300 ease-in-out overflow-hidden",
         solidNav
           ? "top-4 left-4 right-4 rounded-2xl bg-card/95 dark:bg-card/95 backdrop-blur-md shadow-lg border border-border/40 py-2"
           : "top-0 left-0 right-0 bg-transparent py-5 text-white"
@@ -104,31 +105,53 @@ export function Navbar({ onOpenBooking }: NavbarProps) {
         </div>
       </div>
 
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 bg-background dark:bg-card border-b border-border shadow-lg p-4 flex flex-col space-y-2 animate-in slide-in-from-top-5 duration-200">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.name}
-              to={item.to}
-              smooth duration={500} offset={-80}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="text-foreground font-medium py-2.5 px-4 hover:bg-muted rounded-lg transition-colors cursor-pointer text-sm"
-            >
-              {item.name}
-            </Link>
-          ))}
-          <div className="pt-2 border-t border-border">
-            <Button
-              className="w-full rounded-xl h-11 font-semibold"
-              onClick={() => { setIsMobileMenuOpen(false); onOpenBooking?.(); }}
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              Pesan Sekarang
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Mobile Menu — inside the pill, not absolutely positioned */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            key="mobile-menu"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+            className="md:hidden overflow-hidden"
+          >
+            <div className="border-t border-border/20 px-4 pb-4 pt-2 flex flex-col gap-0.5">
+              {NAV_ITEMS.map((item, i) => (
+                <motion.div
+                  key={item.name}
+                  initial={{ opacity: 0, x: -14 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.055, duration: 0.18, ease: "easeOut" }}
+                >
+                  <Link
+                    to={item.to}
+                    smooth duration={500} offset={-80}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block text-foreground font-medium py-2.5 px-4 hover:bg-secondary/70 dark:hover:bg-secondary/30 rounded-xl transition-colors cursor-pointer text-sm"
+                  >
+                    {item.name}
+                  </Link>
+                </motion.div>
+              ))}
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: NAV_ITEMS.length * 0.055 + 0.04, duration: 0.18 }}
+                className="pt-2 mt-1 border-t border-border/20"
+              >
+                <Button
+                  className="w-full rounded-xl h-11 font-semibold"
+                  onClick={() => { setIsMobileMenuOpen(false); onOpenBooking?.(); }}
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Pesan Sekarang
+                </Button>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }
