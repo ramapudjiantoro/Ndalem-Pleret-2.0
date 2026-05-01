@@ -44,7 +44,7 @@ const PAYMENT_LABELS: Record<string, string> = {
 // ─── Notification Types ───────────────────────────────────────────────────────
 interface AdminNotif {
   id: string;
-  type: "new_booking" | "checkin" | "checkout" | "test";
+  type: "new_booking" | "checkin" | "checkout";
   title: string;
   body: string;
   bookingRef?: string;
@@ -53,7 +53,7 @@ interface AdminNotif {
 }
 
 const NOTIF_ICON: Record<AdminNotif["type"], string> = {
-  new_booking: "🔔", checkin: "🏠", checkout: "👋", test: "✅",
+  new_booking: "🔔", checkin: "🏠", checkout: "👋",
 };
 
 // ─── useAdminNotifications ────────────────────────────────────────────────────
@@ -257,33 +257,18 @@ function useAdminNotifications(bookings: Booking[], token: string) {
   // (kalau direset, refresh berikutnya akan notif ulang lagi)
   function clearAll() { setNotifs([]); }
 
-  function simulate(type: AdminNotif["type"]) {
-    const ref = `NP-SIM-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
-    const MAP: Record<AdminNotif["type"], Omit<AdminNotif, "id" | "at" | "read">> = {
-      new_booking: { type: "new_booking", title: "🔔 Pesanan Baru! (Simulasi)",
-        body: `Budi Santoso memesan Ndalem Belakang · 2026-05-10 → 2026-05-12 · 2 malam`, bookingRef: ref },
-      checkin: { type: "checkin", title: "🏠 Check-in Hari Ini (Simulasi)",
-        body: `Sari Dewi (${ref}) check-in di Ndalem Tengah`, bookingRef: ref },
-      checkout: { type: "checkout", title: "👋 Check-out Hari Ini (Simulasi)",
-        body: `Andi Pratama (${ref}) check-out dari Ndalem Belakang`, bookingRef: ref },
-      test: { type: "test", title: "✅ Test Notifikasi",
-        body: "Sistem notifikasi admin Ndalem Pleret berfungsi dengan baik!" },
-    };
-    fire(MAP[type]);
-  }
-
   const unread = notifs.filter((n) => !n.read).length;
-  return { notifs, unread, permission, requestPermission, markAllRead, clearAll, simulate };
+  return { notifs, unread, permission, requestPermission, markAllRead, clearAll };
 }
 
 // ─── NotifPanel ───────────────────────────────────────────────────────────────
 function NotifPanel({
   notifs, unread, permission,
-  onRequestPermission, onMarkAllRead, onClearAll, onSimulate, onClose,
+  onRequestPermission, onMarkAllRead, onClearAll, onClose,
 }: {
   notifs: AdminNotif[]; unread: number; permission: NotificationPermission;
   onRequestPermission: () => void; onMarkAllRead: () => void; onClearAll: () => void;
-  onSimulate: (t: AdminNotif["type"]) => void; onClose: () => void;
+  onClose: () => void;
 }) {
   return (
     <div className="fixed left-2 right-2 top-[62px] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 bg-white dark:bg-card border border-border/50 rounded-2xl shadow-2xl z-50 overflow-hidden max-h-[calc(100vh-80px)] overflow-y-auto sm:max-h-none sm:overflow-visible">
@@ -334,7 +319,6 @@ function NotifPanel({
           <div className="py-8 text-center text-muted-foreground text-sm">
             <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
             <p>Belum ada notifikasi</p>
-            <p className="text-xs mt-1 opacity-60">Coba simulasi di bawah</p>
           </div>
         ) : (
           <div className="divide-y divide-border/30">
@@ -360,25 +344,6 @@ function NotifPanel({
         )}
       </div>
 
-      {/* Simulate section */}
-      <div className="border-t border-border/50 px-4 py-3 bg-secondary/30">
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">
-          Simulasi & Test
-        </p>
-        <div className="grid grid-cols-2 gap-1.5">
-          {([
-            { type: "new_booking" as const, label: "Booking Baru",  emoji: "🔔" },
-            { type: "checkin"     as const, label: "Check-in",      emoji: "🏠" },
-            { type: "checkout"    as const, label: "Check-out",     emoji: "👋" },
-            { type: "test"        as const, label: "Test Sistem",   emoji: "✅" },
-          ]).map(({ type, label, emoji }) => (
-            <button key={type} onClick={() => onSimulate(type)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-white dark:bg-card text-xs font-medium hover:bg-muted/50 active:scale-95 transition-all">
-              <span>{emoji}</span> {label}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
@@ -1805,7 +1770,6 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
                   onRequestPermission={notif.requestPermission}
                   onMarkAllRead={notif.markAllRead}
                   onClearAll={notif.clearAll}
-                  onSimulate={notif.simulate}
                   onClose={() => setShowNotifPanel(false)}
                 />
               )}
