@@ -12,6 +12,7 @@ import { BookingModal } from "@/components/BookingModal";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { TestimonialsSection } from "@/components/TestimonialsSection";
 import { FAQSection } from "@/components/FAQSection";
+import { PricingSection } from "@/components/PricingSection";
 import { StickyBookingBar, FloatingBookingButton } from "@/components/StickyBookingBar";
 import { UnitDetailModal } from "@/components/UnitDetailModal";
 import { Button } from "@/components/ui/button";
@@ -398,12 +399,11 @@ export default function Home() {
             })()}
           </div>
 
-          {/* Deposit info */}
-          <p className="text-center text-white/55 text-sm mt-8">
-            + Deposit jaminan Rp 500.000 (dikembalikan setelah check-out &amp; pengecekan unit)
-          </p>
         </div>
       </section>
+
+      {/* ── PRICING ── */}
+      <PricingSection onOpenBooking={() => openBooking()} />
 
       {/* ── AVAILABILITY CALENDAR ── */}
       <AvailabilityCalendar onOpenBooking={(id) => openBooking(id)} />

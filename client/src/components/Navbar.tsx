@@ -13,6 +13,7 @@ interface NavbarProps {
 const NAV_ITEMS = [
   { name: "Tentang", to: "about" },
   { name: "Unit", to: "units" },
+  { name: "Harga", to: "pricing" },
   { name: "Fasilitas", to: "facilities" },
   { name: "Ketersediaan", to: "availability" },
   { name: "FAQ", to: "faq" },
