@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, differenceInCalendarDays, addDays, isBefore, isAfter, isToday, isSameDay } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { X, ChevronLeft, ChevronRight, Check, Copy, ExternalLink, Loader2, AlertTriangle, BedDouble, Users, Calendar, Phone, Mail, User } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Check, Copy, ExternalLink, Loader2, AlertTriangle, BedDouble, Users, Calendar, Phone, Mail, User, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,14 @@ const UNIT_PREVIEW: Record<number, string> = {
 const DAYS_ID = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
 const DEPOSIT = 500000;
 const WHATSAPP_NUMBER = "6285121314631";
+
+// ─── Discount tiers (same logic as PricingSection) ────────────────────────────
+function getDiscount(nights: number): { pct: number; label: string } {
+  if (nights >= 21) return { pct: 12, label: `3 Minggu (${nights} malam)` };
+  if (nights >= 14) return { pct: 8,  label: `2 Minggu (${nights} malam)` };
+  if (nights >= 7)  return { pct: 5,  label: `1 Minggu (${nights} malam)` };
+  return { pct: 0, label: "" };
+}
 
 // ─── Mini Calendar ────────────────────────────────────────────────────────────
 function MiniCalendar({
@@ -133,8 +141,13 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
 
   const selectedUnit = units.find((u) => u.id === selectedUnitId) ?? null;
   const nights = checkIn && checkOut ? differenceInCalendarDays(checkOut, checkIn) : 0;
-  const subtotal = selectedUnit ? selectedUnit.pricePerNight * nights : 0;
-  const total = subtotal + (nights > 0 ? DEPOSIT : 0);
+
+  // ── Pricing with discount ──────────────────────────────────────────────────
+  const baseSubtotal  = selectedUnit ? selectedUnit.pricePerNight * nights : 0;
+  const { pct: discountPct, label: discountLabel } = getDiscount(nights);
+  const discountAmount = Math.round(baseSubtotal * discountPct / 100);
+  const stayTotal     = baseSubtotal - discountAmount;   // tarif menginap setelah diskon
+  const total         = stayTotal + (nights > 0 ? DEPOSIT : 0);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -149,19 +162,14 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
 
   function handleDateSelect(date: Date) {
     if (!checkIn || (checkIn && checkOut)) {
-      // First click — always set as check-in
       setCheckIn(date); setCheckOut(null);
     } else {
-      // Second click — must be STRICTLY AFTER check-in (minimum 1 night)
       if (!isAfter(date, checkIn)) {
-        // Clicked same day or earlier — restart selection from this date
         setCheckIn(date); setCheckOut(null); return;
       }
-      // Reject if any date in the range is unavailable
       const cur = addDays(checkIn, 1);
       while (isBefore(cur, date)) {
         if (unavailableDates.includes(format(cur, "yyyy-MM-dd"))) {
-          // Range crosses an unavailable date — start over from clicked date
           setCheckIn(date); setCheckOut(null); return;
         }
         cur.setDate(cur.getDate() + 1);
@@ -175,7 +183,6 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
     if (!checkIn || !checkOut) { setFormError("Pilih tanggal check-in dan check-out"); return; }
     if (!isAfter(checkOut, checkIn)) { setFormError("Check-out harus minimal 1 malam setelah check-in"); return; }
 
-    // Validate entire range against known unavailable dates
     const cur = new Date(checkIn);
     while (cur < checkOut) {
       if (unavailableDates.includes(format(cur, "yyyy-MM-dd"))) {
@@ -219,7 +226,6 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
       const data = await res.json();
       if (!res.ok) {
         if (res.status === 409) {
-          // Dates were taken between selection and submission — go back to step 1
           queryClient.invalidateQueries({ queryKey: ["availability"] });
           setCheckIn(null); setCheckOut(null);
           setFormError("Tanggal tersebut baru saja dipesan oleh tamu lain. Pilih tanggal lain.");
@@ -248,13 +254,18 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
 
   function buildWhatsApp() {
     if (!bookingResult) return "#";
+    const discountLine = discountPct > 0
+      ? `Diskon ${discountLabel} (${discountPct}%): -${formatIDR(discountAmount)}\n`
+      : "";
     const msg = encodeURIComponent(
       `Halo Ndalem Pleret! Saya baru saja melakukan pemesanan dengan kode: *${bookingResult.bookingRef}*\n\n` +
       `Nama: ${guestForm.name}\n` +
       `Unit: ${selectedUnit?.name}\n` +
       `Check-in: ${checkIn ? format(checkIn, "dd MMMM yyyy", { locale: idLocale }) : ""}\n` +
       `Check-out: ${checkOut ? format(checkOut, "dd MMMM yyyy", { locale: idLocale }) : ""}\n` +
-      `Total: ${formatIDR(bookingResult.totalPrice + DEPOSIT)}\n\n` +
+      `Durasi: ${nights} malam\n` +
+      discountLine +
+      `Total Bayar: ${formatIDR(total)}\n\n` +
       `Saya sudah melakukan pembayaran via QRIS. Mohon konfirmasinya. Terima kasih!`
     );
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
@@ -321,7 +332,6 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                           onClick={() => setSelectedUnitId(unit.id)}
                           className={`relative text-left rounded-xl border-2 transition-all overflow-hidden ${selectedUnitId === unit.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40 bg-white dark:bg-card/60"}`}
                         >
-                          {/* Preview foto ruang keluarga */}
                           {UNIT_PREVIEW[unit.id] && (
                             <div className="w-full h-28 overflow-hidden">
                               <img
@@ -360,7 +370,6 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                     <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600"></span> Penuh</span>
                   </div>
 
-                  {/* Error — ditampilkan tepat di atas kalender agar terlihat tanpa scroll */}
                   {formError && (
                     <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-xs bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 px-3 py-2 rounded-lg mb-2">
                       <AlertTriangle className="w-3.5 h-3.5 shrink-0" />{formError}
@@ -403,11 +412,32 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                     </div>
                   </div>
 
+                  {/* Nights preview — with discount hint if applicable */}
                   {nights > 0 && selectedUnit && (
-                    <div className="mt-3 p-3 bg-primary/5 border border-primary/20 rounded-xl text-sm">
-                      <span className="font-semibold text-primary">{nights} malam</span>
-                      <span className="text-muted-foreground"> × {formatIDR(selectedUnit.pricePerNight)} = </span>
-                      <span className="font-bold text-foreground">{formatIDR(subtotal)}</span>
+                    <div className="mt-3 p-3 bg-primary/5 border border-primary/20 rounded-xl text-sm space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">{formatIDR(selectedUnit.pricePerNight)} × {nights} malam</span>
+                        <span className={discountPct > 0 ? "line-through text-muted-foreground/60" : "font-bold text-foreground"}>
+                          {formatIDR(baseSubtotal)}
+                        </span>
+                      </div>
+                      {discountPct > 0 && (
+                        <>
+                          <div className="flex items-center justify-between text-green-700 dark:text-green-400">
+                            <span className="flex items-center gap-1 text-xs"><Tag className="w-3 h-3" /> Diskon {discountLabel} ({discountPct}%)</span>
+                            <span className="text-xs font-semibold">−{formatIDR(discountAmount)}</span>
+                          </div>
+                          <div className="flex items-center justify-between pt-1 border-t border-primary/15">
+                            <span className="font-semibold text-foreground">{nights} malam</span>
+                            <span className="font-bold text-primary text-base">{formatIDR(stayTotal)}</span>
+                          </div>
+                        </>
+                      )}
+                      {discountPct === 0 && (
+                        <div className="text-xs text-muted-foreground/70 pt-0.5">
+                          Menginap 7+ malam? Dapatkan diskon hingga 12%.
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -424,6 +454,12 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                     <Calendar className="w-4 h-4" />
                     <span>{checkIn && format(checkIn, "dd MMM", { locale: idLocale })} → {checkOut && format(checkOut, "dd MMM yyyy", { locale: idLocale })} · {nights} malam</span>
                   </div>
+                  {discountPct > 0 && (
+                    <div className="flex items-center gap-2 text-green-700 dark:text-green-400 text-xs">
+                      <Tag className="w-3.5 h-3.5" />
+                      <span>Diskon {discountPct}% terapkan · Hemat {formatIDR(discountAmount)}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-4">
@@ -481,34 +517,77 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
             {step === 3 && (
               <div className="p-6 space-y-5">
                 {/* Order Summary */}
-                <div className="bg-secondary/40 rounded-xl p-4 space-y-2 text-sm">
+                <div className="bg-secondary/40 rounded-xl p-4 space-y-2.5 text-sm">
                   <h3 className="font-bold text-foreground mb-3">Ringkasan Pemesanan</h3>
-                  <div className="flex justify-between"><span className="text-muted-foreground">{selectedUnit?.name}</span></div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{checkIn && format(checkIn, "dd MMM", { locale: idLocale })} – {checkOut && format(checkOut, "dd MMM yyyy", { locale: idLocale })}</span>
-                    <span className="font-medium">{nights} malam</span>
+
+                  {/* Unit & dates */}
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>{selectedUnit?.name}</span>
+                    <span>{nights} malam</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{formatIDR(selectedUnit?.pricePerNight ?? 0)} × {nights} malam</span>
-                    <span>{formatIDR(subtotal)}</span>
+                  <div className="text-xs text-muted-foreground -mt-1">
+                    {checkIn && format(checkIn, "dd MMM", { locale: idLocale })} – {checkOut && format(checkOut, "dd MMM yyyy", { locale: idLocale })}
                   </div>
-                  <div className="flex justify-between items-start gap-2">
-                    <span className="text-muted-foreground leading-snug">
-                      Deposit jaminan
-                      <span className="block text-xs text-muted-foreground/70">Dikembalikan setelah check-out &amp; pengecekan unit</span>
-                    </span>
-                    <span className="shrink-0">{formatIDR(DEPOSIT)}</span>
+
+                  <div className="border-t border-border/40 pt-2.5 space-y-2">
+                    {/* Base rate line */}
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{formatIDR(selectedUnit?.pricePerNight ?? 0)} × {nights} malam</span>
+                      <span className={discountPct > 0 ? "line-through text-muted-foreground/50" : ""}>
+                        {formatIDR(baseSubtotal)}
+                      </span>
+                    </div>
+
+                    {/* Discount line — only if applicable */}
+                    {discountPct > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="flex items-center gap-1.5 text-green-700 dark:text-green-400">
+                          <Tag className="w-3.5 h-3.5 shrink-0" />
+                          Diskon {discountLabel} ({discountPct}%)
+                        </span>
+                        <span className="text-green-700 dark:text-green-400 font-medium">
+                          −{formatIDR(discountAmount)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Stay subtotal (after discount) */}
+                    {discountPct > 0 && (
+                      <div className="flex justify-between font-medium">
+                        <span className="text-foreground">Tarif menginap</span>
+                        <span className="text-foreground">{formatIDR(stayTotal)}</span>
+                      </div>
+                    )}
+
+                    {/* Deposit */}
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-muted-foreground leading-snug">
+                        Deposit jaminan
+                        <span className="block text-xs text-muted-foreground/70">Dikembalikan setelah check-out &amp; pengecekan unit</span>
+                      </span>
+                      <span className="shrink-0">{formatIDR(DEPOSIT)}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between pt-2 border-t border-border font-bold text-base">
+
+                  {/* Total */}
+                  <div className="flex justify-between pt-2.5 border-t border-border font-bold text-base">
                     <span>Total Pembayaran</span>
                     <span className="text-primary">{formatIDR(total)}</span>
                   </div>
+
+                  {/* Savings callout */}
+                  {discountPct > 0 && (
+                    <div className="flex items-center gap-2 text-xs bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 text-green-700 dark:text-green-400 px-3 py-2 rounded-lg mt-1">
+                      <Check className="w-3.5 h-3.5 shrink-0" />
+                      Anda menghemat {formatIDR(discountAmount)} dengan paket {discountLabel}.
+                    </div>
+                  )}
                 </div>
 
                 {/* QRIS */}
                 <div className="bg-white dark:bg-card border border-border rounded-2xl p-5 text-center">
                   <div className="text-sm font-semibold mb-2 text-foreground">Scan QRIS untuk Membayar</div>
-                  <div className="text-xl font-bold text-primary mb-3">{formatIDR(total)}</div>
+                  <div className="text-2xl font-bold text-primary mb-3">{formatIDR(total)}</div>
                   <div className="mx-auto w-52 h-52 rounded-2xl overflow-hidden border border-border mb-3">
                     <img src="/qris.jpg" alt="QRIS Ndalem Pleret" className="w-full h-full object-cover" />
                   </div>
@@ -557,18 +636,19 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                 </div>
 
                 {/* Summary */}
-                <div className="space-y-2 text-sm">
+                <div className="space-y-2 text-sm bg-secondary/30 rounded-xl p-4">
                   {[
-                    { label: "Unit", value: selectedUnit?.name },
-                    { label: "Tamu", value: guestForm.name },
-                    { label: "Check-in", value: checkIn ? format(checkIn, "EEEE, dd MMMM yyyy", { locale: idLocale }) : "" },
+                    { label: "Unit",      value: selectedUnit?.name },
+                    { label: "Tamu",      value: guestForm.name },
+                    { label: "Check-in",  value: checkIn  ? format(checkIn,  "EEEE, dd MMMM yyyy", { locale: idLocale }) : "" },
                     { label: "Check-out", value: checkOut ? format(checkOut, "EEEE, dd MMMM yyyy", { locale: idLocale }) : "" },
-                    { label: "Durasi", value: `${nights} malam` },
+                    { label: "Durasi",    value: `${nights} malam` },
+                    ...(discountPct > 0 ? [{ label: `Diskon (${discountPct}%)`, value: `−${formatIDR(discountAmount)}`, green: true }] : []),
                     { label: "Total Bayar", value: formatIDR(total), bold: true },
-                  ].map(({ label, value, bold }) => (
+                  ].map(({ label, value, bold, green }: any) => (
                     <div key={label} className="flex justify-between">
                       <span className="text-muted-foreground">{label}</span>
-                      <span className={bold ? "font-bold text-primary" : "font-medium"}>{value}</span>
+                      <span className={bold ? "font-bold text-primary" : green ? "font-medium text-green-600 dark:text-green-400" : "font-medium"}>{value}</span>
                     </div>
                   ))}
                 </div>
@@ -581,7 +661,7 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                 </a>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  Bukti pembayaran & kode booking akan kami proses dalam 1×24 jam.
+                  Bukti pembayaran &amp; kode booking akan kami proses dalam 1×24 jam.
                 </p>
               </div>
             )}
