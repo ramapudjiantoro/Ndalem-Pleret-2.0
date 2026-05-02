@@ -478,11 +478,11 @@ export default function Home() {
       </section>
 
       {/* ── GALLERY ── */}
-      <section id="gallery" className="py-16 bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="gallery" className="py-16 md:py-12 bg-background">
+        <div className="max-w-7xl md:max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading title="Lihat ke Dalam" subtitle="Galeri Foto" />
           {/* Gallery grid — foto pertama full-width, sisanya 2×2 */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 md:gap-2">
             {GALLERY_IMAGES.map((img, index) => (
               <motion.div
                 key={index}
