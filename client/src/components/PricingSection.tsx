@@ -132,30 +132,45 @@ export function PricingSection({ onOpenBooking }: PricingSectionProps) {
 
               {/* ── Discount cards ── */}
               {tier.id !== "nightly" && tier.normalTotal !== null && tier.finalTotal !== null && (
-                <div className="flex-1">
-                  {/* Original price — de-emphasized */}
-                  <div className={`text-xs tabular-nums line-through leading-none mb-1 ${tier.highlight ? "text-white/40" : "text-muted-foreground/50"}`}>
-                    {fmtIDR(tier.normalTotal)}
+                <div className="flex-1 flex flex-col">
+                  {/* Discount % badge — prominent, shown first */}
+                  <div className={`mb-3 self-start inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${
+                    tier.highlight
+                      ? "bg-white/20 text-white"
+                      : "bg-primary/10 text-primary border border-primary/20"
+                  }`}>
+                    <Check className="w-3 h-3" />
+                    Diskon {tier.discount}%
                   </div>
 
-                  {/* Final price — prominent */}
+                  {/* Per-night — HERO number */}
                   <div className={`text-xl sm:text-2xl font-bold font-display tabular-nums leading-tight ${tier.highlight ? "text-white" : "text-primary"}`}>
-                    {fmtIDR(tier.finalTotal)}
+                    {fmtIDR(tier.perNight)}
+                  </div>
+                  <div className={`text-xs mt-0.5 mb-3 ${tier.highlight ? "text-white/70" : "text-muted-foreground"}`}>
+                    / malam
                   </div>
 
-                  {/* Per-night equivalent */}
-                  <div className={`text-[11px] mt-1 ${tier.highlight ? "text-white/60" : "text-muted-foreground/70"}`}>
-                    ≈ {fmtIDR(tier.perNight)} / malam
+                  {/* Total — de-emphasized footnote */}
+                  <div className={`text-[11px] tabular-nums ${tier.highlight ? "text-white/50" : "text-muted-foreground/60"}`}>
+                    Total {tier.duration}:
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-xs tabular-nums line-through ${tier.highlight ? "text-white/35" : "text-muted-foreground/40"}`}>
+                      {fmtIDR(tier.normalTotal)}
+                    </span>
+                    <span className={`text-xs tabular-nums font-semibold ${tier.highlight ? "text-white/70" : "text-muted-foreground/80"}`}>
+                      {fmtIDR(tier.finalTotal)}
+                    </span>
                   </div>
 
-                  {/* Savings badge */}
+                  {/* Savings amount */}
                   {tier.savingsAmount !== null && (
-                    <div className={`mt-3 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                    <div className={`mt-3 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full self-start ${
                       tier.highlight
                         ? "bg-white/15 text-white"
                         : "bg-green-50 text-green-700 border border-green-200"
                     }`}>
-                      <Check className="w-2.5 h-2.5" />
                       Hemat {fmtIDR(tier.savingsAmount)}
                     </div>
                   )}
