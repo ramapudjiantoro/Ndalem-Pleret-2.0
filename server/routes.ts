@@ -150,17 +150,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         if (expired.length > 0) storage.deletePushSubscriptions(expired).catch(() => {});
       }).catch((err) => console.error("Push notification failed:", err));
 
-      // Fire-and-forget — buat 3 Google Calendar events
-      createBookingCalendarEvents({
-        bookingRef: booking.bookingRef,
-        guestName: booking.guestName,
-        unitName: unit.name,
-        checkIn: booking.checkIn,
-        checkOut: booking.checkOut,
-        nights: booking.nights,
-        guestCount: booking.guestCount,
-        guestPhone: booking.guestPhone,
-      }).catch((err) => console.error("Google Calendar failed:", err));
+      // Calendar events dibuat nanti saat admin konfirmasi (status → confirmed)
 
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -322,9 +312,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     res.json(updated);
 
-    // Email 2: kirim konfirmasi final HANYA saat admin mengubah status → "confirmed"
+    // Email 2 + Calendar: jalankan saat admin mengubah status → "confirmed"
     if (status === "confirmed") {
       const unit = await storage.getUnit(updated.unitId);
+
+      // Kirim email konfirmasi ke tamu
       sendBookingConfirmation({
         guestEmail: updated.guestEmail,
         bookingRef: updated.bookingRef,
@@ -336,6 +328,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         totalPrice: updated.totalPrice,
         guestCount: updated.guestCount,
       }).catch((err) => console.error("❌ Confirmation email failed:", err?.message ?? err));
+
+      // Buat 3 Google Calendar events (all-day stay + check-in + check-out)
+      createBookingCalendarEvents({
+        bookingRef: updated.bookingRef,
+        guestName: updated.guestName,
+        unitName: unit?.name ?? "Ndalem Pleret",
+        checkIn: updated.checkIn,
+        checkOut: updated.checkOut,
+        nights: updated.nights,
+        guestCount: updated.guestCount,
+        guestPhone: updated.guestPhone,
+      }).catch((err) => console.error("❌ Google Calendar failed:", err));
     }
 
     // Google Calendar: hapus semua event jika booking dibatalkan
