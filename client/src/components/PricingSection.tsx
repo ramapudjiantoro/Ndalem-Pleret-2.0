@@ -23,7 +23,7 @@ const TIERS = [
     discount: null,
     savingsAmount: null,
     note: "Tarif standar per malam",
-    highlight: false,
+    highlight: true,
   },
   {
     id: "week1",
@@ -47,7 +47,7 @@ const TIERS = [
     discount: 8,
     savingsAmount: 672_000,
     note: "Hemat 8% dari tarif normal",
-    highlight: true, // most recommended
+    highlight: false,
   },
   {
     id: "week3",
@@ -123,22 +123,18 @@ export function PricingSection({ onOpenBooking }: PricingSectionProps) {
               {/* ── Nightly (base) card ── */}
               {tier.id === "nightly" && (
                 <div className="flex-1">
-                  <div className="text-2xl sm:text-3xl font-bold font-display tabular-nums text-primary leading-none">
+                  <div className={`text-2xl sm:text-3xl font-bold font-display tabular-nums leading-none ${tier.highlight ? "text-white" : "text-primary"}`}>
                     {fmtIDR(BASE_RATE)}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">per malam</div>
+                  <div className={`text-xs mt-1 ${tier.highlight ? "text-white/70" : "text-muted-foreground"}`}>per malam</div>
                 </div>
               )}
 
               {/* ── Discount cards ── */}
               {tier.id !== "nightly" && tier.normalTotal !== null && tier.finalTotal !== null && (
                 <div className="flex-1 flex flex-col">
-                  {/* Discount % badge — prominent, shown first */}
-                  <div className={`mb-3 self-start inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${
-                    tier.highlight
-                      ? "bg-white/20 text-white"
-                      : "bg-primary/10 text-primary border border-primary/20"
-                  }`}>
+                  {/* Discount % badge — prominent red pill */}
+                  <div className="mb-3 self-start inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-red-600 text-white shadow-sm">
                     <Check className="w-3 h-3" />
                     Diskon {tier.discount}%
                   </div>
