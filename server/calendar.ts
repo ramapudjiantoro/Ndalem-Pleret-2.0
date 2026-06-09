@@ -25,12 +25,18 @@ function createAuth() {
   return auth;
 }
 
-// Ekstrak pesan error yang berguna dari respons Google API
+// Ekstrak pesan error dari respons Google API
 function extractGoogleError(err: any): string {
-  // googleapis error biasanya menyimpan detail di err.response.data.error
-  const apiErr = err?.response?.data?.error;
-  if (apiErr) {
-    return `${apiErr.code} ${apiErr.status}: ${apiErr.message}`;
+  const data = err?.response?.data;
+  if (data) {
+    // OAuth2 error: { error: "invalid_grant", error_description: "..." }
+    if (typeof data.error === "string") {
+      return `${data.error}${data.error_description ? ": " + data.error_description : ""}`;
+    }
+    // Calendar API error: { error: { code, status, message } }
+    if (data.error?.message) {
+      return `${data.error.code ?? ""} ${data.error.status ?? ""}: ${data.error.message}`.trim();
+    }
   }
   return err?.message ?? String(err);
 }

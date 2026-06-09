@@ -174,7 +174,10 @@ function useAdminNotifications(bookings: Booking[], token: string) {
     const id = Math.random().toString(36).slice(2) + Date.now();
     setNotifs((prev) => [{ ...notif, id, at: new Date(), read: false }, ...prev].slice(0, 60));
 
-    if ("Notification" in window && Notification.permission === "granted") {
+    // Hanya tampilkan system notification jika halaman sedang di background/hidden.
+    // Jika halaman sedang aktif di depan, user sudah bisa lihat langsung — tidak perlu
+    // notif duplikat (push sudah dikirim via service worker saat app di background).
+    if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
       try {
         const n = new Notification(notif.title, {
           body: notif.body,
