@@ -196,30 +196,29 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
     setFormError(""); setStep(2);
   }
 
-  function handleStep2Continue() {
+  // Booking dibuat saat customer klik "Lanjut ke Pembayaran" (step 2 → 3)
+  // agar kode pesanan sudah ada saat halaman QRIS tampil.
+  async function handleStep2Continue() {
     const { name, phone, email, guestCount } = guestForm;
     if (!name.trim() || name.trim().length < 2) { setFormError("Nama harus minimal 2 karakter"); return; }
     if (!phone.trim() || phone.trim().length < 9) { setFormError("Nomor HP tidak valid"); return; }
     if (!email.trim() || !email.includes("@")) { setFormError("Email tidak valid"); return; }
     if (!guestCount || parseInt(guestCount) < 1) { setFormError("Jumlah tamu harus diisi"); return; }
-    setFormError(""); setStep(3);
-  }
-
-  async function handleSubmitBooking() {
     if (!selectedUnitId || !checkIn || !checkOut) return;
-    setIsSubmitting(true); setFormError("");
+
+    setFormError(""); setIsSubmitting(true);
     try {
       const res = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           unitId: selectedUnitId,
-          guestName: guestForm.name,
-          guestPhone: guestForm.phone,
-          guestEmail: guestForm.email,
+          guestName: name,
+          guestPhone: phone,
+          guestEmail: email,
           checkIn: format(checkIn, "yyyy-MM-dd"),
           checkOut: format(checkOut, "yyyy-MM-dd"),
-          guestCount: parseInt(guestForm.guestCount),
+          guestCount: parseInt(guestCount),
           notes: guestForm.notes || undefined,
         }),
       });
@@ -237,12 +236,17 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
       }
       setBookingResult(data);
       queryClient.invalidateQueries({ queryKey: ["availability"] });
-      setStep(4);
+      setStep(3);
     } catch {
       setFormError("Koneksi gagal, periksa internet Anda");
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  // Step 3 → 4: booking sudah ada, tombol ini hanya lanjut ke halaman sukses
+  function handleConfirmPayment() {
+    setStep(4);
   }
 
   function copyRef() {
@@ -596,13 +600,36 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                   </div>
                 </div>
 
+                {/* Kode pesanan + link halaman order */}
+                {bookingResult && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-muted-foreground uppercase tracking-widest">Kode Pesanan</span>
+                      <button onClick={copyRef} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
+                        {copiedRef ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+                        {copiedRef ? "Tersalin!" : "Salin"}
+                      </button>
+                    </div>
+                    <div className="text-xl font-bold font-mono text-primary tracking-wider mb-2">{bookingResult.bookingRef}</div>
+                    <a
+                      href={`/order/${bookingResult.bookingRef}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs text-primary hover:underline font-medium"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      Buka &amp; simpan halaman pesananmu →
+                    </a>
+                  </div>
+                )}
+
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-2xl p-4 text-sm text-amber-800 dark:text-amber-300 space-y-1">
                   <div className="font-semibold">Langkah selanjutnya:</div>
                   <ol className="list-decimal list-inside space-y-1 text-xs">
                     <li>Bayar sesuai nominal di atas via QRIS</li>
-                    <li>Klik tombol "Konfirmasi Pemesanan" di bawah</li>
-                    <li>Kirim bukti bayar ke WhatsApp kami</li>
+                    <li>Klik "Konfirmasi Pemesanan" di bawah lalu kirim bukti bayar ke WhatsApp</li>
                     <li>Booking dikonfirmasi dalam 1×24 jam</li>
+                    <li>Bookmark halaman pesananmu untuk cek status kapan saja</li>
                   </ol>
                 </div>
 
@@ -660,6 +687,19 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                   </Button>
                 </a>
 
+                {/* Link halaman pesanan */}
+                {bookingResult && (
+                  <a
+                    href={`/order/${bookingResult.bookingRef}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full border border-border rounded-xl h-11 text-sm font-medium text-foreground hover:bg-secondary/50 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4 text-primary" />
+                    Lihat &amp; Simpan Halaman Pesananmu
+                  </a>
+                )}
+
                 <p className="text-xs text-center text-muted-foreground">
                   Bukti pembayaran &amp; kode booking akan kami proses dalam 1×24 jam.
                 </p>
@@ -681,13 +721,13 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                 </Button>
               )}
               {step === 2 && (
-                <Button onClick={handleStep2Continue} className="flex-1 rounded-xl h-12 font-semibold text-base">
-                  Lanjut ke Pembayaran <ChevronRight className="w-4 h-4 ml-1" />
+                <Button onClick={handleStep2Continue} disabled={isSubmitting} className="flex-1 rounded-xl h-12 font-semibold text-base">
+                  {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Memproses...</> : <>Lanjut ke Pembayaran <ChevronRight className="w-4 h-4 ml-1" /></>}
                 </Button>
               )}
               {step === 3 && (
-                <Button onClick={handleSubmitBooking} disabled={isSubmitting} className="flex-1 rounded-xl h-12 font-semibold text-base">
-                  {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Memproses...</> : "Konfirmasi Pemesanan"}
+                <Button onClick={handleConfirmPayment} className="flex-1 rounded-xl h-12 font-semibold text-base">
+                  Konfirmasi Pemesanan
                 </Button>
               )}
             </div>
