@@ -618,7 +618,7 @@ export default function Home() {
             </div>
           </div>
           <div className="mt-10 pt-6 border-t border-white/10 text-center text-xs text-white/40">
-            &copy; {new Date().getFullYear()} Ndalem Pleret Guest House & Residences. Hak Cipta Dilindungi.
+            &copy; {new Date().getFullYear()} Ndalem Pleret Guest House & Residences · Solo, Jawa Tengah.
           </div>
         </div>
       </footer>
