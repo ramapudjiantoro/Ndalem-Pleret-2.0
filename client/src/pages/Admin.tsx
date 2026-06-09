@@ -988,7 +988,7 @@ function BookingRow({ booking, token, onRefresh }: { booking: Booking; token: st
                 (booking.unitName?.toLowerCase().includes("tengah")
                   ? "Username: *Omahtamu*\nPassword: *ynwa2022*"
                   : "Username: *Guesthouse*\nPassword: *ndalempleret*") +
-                `\n\n📧 Panduan check-in lengkap sudah kami kirim ke email Anda. Jika tidak ada di inbox, silakan cek folder *Promotions* atau *Spam*.\n\nSelamat menginap & jangan ragu hubungi kami jika ada pertanyaan! 😊`
+                `\n\n📧 Panduan check-in lengkap sudah kami kirim ke email Anda. Jika tidak ada di inbox, silakan cek folder *Promotions* atau *Spam*.\n\nSelamat menginap & jangan ragu hubungi kami jika ada pertanyaan! 😊\n\n_pesan ini dikirim otomatis_`
               )}`}
               target="_blank" rel="noopener noreferrer"
             >
