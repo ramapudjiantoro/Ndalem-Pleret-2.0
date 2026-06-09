@@ -270,7 +270,7 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
       `Durasi: ${nights} malam\n` +
       discountLine +
       `Total Bayar: ${formatIDR(total)}\n\n` +
-      `Saya sudah melakukan pembayaran via QRIS. Mohon konfirmasinya. Terima kasih!`
+      `Saya sudah melakukan pembayaran via QRIS. Mohon konfirmasinya. Terima kasih!\n\n📎 *Bukti transfer/screenshot pembayaran saya lampirkan bersama pesan ini.*`
     );
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
   }
