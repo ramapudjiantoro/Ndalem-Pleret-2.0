@@ -703,6 +703,10 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
                 <p className="text-xs text-center text-muted-foreground">
                   Bukti pembayaran &amp; kode booking akan kami proses dalam 1×24 jam.
                 </p>
+
+                <Button variant="outline" onClick={onClose} className="w-full rounded-xl h-12 font-semibold">
+                  Selesai
+                </Button>
               </div>
             )}
           </div>
