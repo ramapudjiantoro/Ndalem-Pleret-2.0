@@ -1,3 +1,7 @@
+# Dependencies & build output (di-build ulang di dalam image)
+node_modules
+dist
+
 # Git history (tidak perlu di image)
 .git
 .gitignore

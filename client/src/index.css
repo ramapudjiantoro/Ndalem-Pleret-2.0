@@ -101,4 +101,42 @@
   --card: 0 0% 100%;
   --card-foreground: 25 15% 20%;
   --popover: 0 0% 100%;
-  --popover-for
+  --popover-foreground: 25 15% 20%;
+  --muted: 35 20% 94%;
+  --muted-foreground: 25 10% 45%;
+  --border: 35 15% 85%;
+  --input: 35 15% 85%;
+  --ring: 28 67% 45%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply tracking-tight;
+  }
+  
+  .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+@layer utilities {
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+  
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
+  }
+}

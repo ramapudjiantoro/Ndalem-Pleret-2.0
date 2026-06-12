@@ -7,8 +7,9 @@ Website pemesanan homestay fullstack untuk Ndalem Pleret, Solo.
 - **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Framer Motion
 - **Backend**: Express.js + TypeScript + Drizzle ORM
 - **Database**: PostgreSQL (Supabase)
-- **Email**: Nodemailer + Gmail SMTP
+- **Email**: Resend SDK (HTTPS API)
 - **Calendar**: Google Calendar API
+- **Hosting**: Hostinger VPS (Docker)
 
 ## Setup Lokal
 
@@ -42,13 +43,15 @@ npm run build
 npm run start
 ```
 
-## Deployment (Railway)
+## Deployment (Hostinger VPS — Docker)
 
-1. Push ke GitHub
-2. Buat project baru di [railway.app](https://railway.app)
-3. Connect ke GitHub repo ini
-4. Tambahkan environment variables (lihat `.env.example`)
-5. Railway akan auto-deploy setiap push ke `main`
+Deploy dilakukan via script `deploy.ps1` (sekali klik dari Windows):
+
+1. Edit kode di lokal
+2. Jalankan `deploy.ps1` → otomatis push ke GitHub, lalu SSH ke VPS untuk `git pull` + rebuild container
+3. Live di https://ndalempleret.com
+
+Lihat `DEPLOYMENT_GUIDE.md` untuk detail lengkap setup VPS, Docker, dan DNS.
 
 ## Environment Variables
 
