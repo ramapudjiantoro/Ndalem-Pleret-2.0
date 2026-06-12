@@ -87,32 +87,18 @@
   --destructive-foreground: 0 0% 98%;
 }
 
-@layer base {
-  html {
-    scroll-behavior: smooth;
-  }
-  
-  body {
-    @apply bg-background text-foreground antialiased;
-    font-family: var(--font-sans);
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-display);
-    @apply tracking-tight;
-  }
-  
-  .font-display {
-    font-family: var(--font-display);
-  }
-}
-
-@layer utilities {
-  .text-shadow {
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-  }
-  
-  .glass-card {
-    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
-  }
-}
+/* Force-light scope — dipakai halaman publik (mis. order receipt) agar selalu
+   tampil branded (cream/terracotta) walau pengunjung pakai dark mode. */
+.theme-light {
+  --primary: 28 67% 45%;
+  --primary-foreground: 30 100% 98%;
+  --secondary: 35 30% 92%;
+  --secondary-foreground: 28 40% 20%;
+  --accent: 120 15% 90%;
+  --accent-foreground: 120 30% 25%;
+  --background: 35 40% 98%;
+  --foreground: 25 15% 20%;
+  --card: 0 0% 100%;
+  --card-foreground: 25 15% 20%;
+  --popover: 0 0% 100%;
+  --popover-for
