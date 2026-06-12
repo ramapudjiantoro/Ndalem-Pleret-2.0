@@ -297,6 +297,7 @@ export class DatabaseStorage implements IStorage {
         adminNotes: bookings.adminNotes,
         createdAt: bookings.createdAt,
         unitName: units.name,
+        pricePerNight: units.pricePerNight,
       })
       .from(bookings)
       .leftJoin(units, eq(bookings.unitId, units.id))
@@ -305,6 +306,7 @@ export class DatabaseStorage implements IStorage {
     return rows.map((r) => ({
       ...r,
       unitName: r.unitName ?? "Unknown Unit",
+      pricePerNight: r.pricePerNight ?? (r.nights > 0 ? Math.round(r.totalPrice / r.nights) : 0),
     }));
   }
 

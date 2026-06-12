@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { computePricing } from "@shared/pricing";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 // Resend uses HTTPS (port 443) — tidak diblokir Railway seperti SMTP (587/465)
@@ -52,11 +53,14 @@ function buildReceiptHtml(data: {
   checkOut: string;
   nights: number;
   totalPrice: number;
+  pricePerNight?: number;
   guestCount: number;
 }): string {
   const { bookingRef, guestName, unitName, checkIn, checkOut, nights, totalPrice, guestCount } = data;
-  const deposit = 500000;
-  const grandTotal = totalPrice + deposit;
+  const ppn = data.pricePerNight ?? (nights > 0 ? Math.round(totalPrice / nights) : 0);
+  const p = computePricing(ppn, nights);
+  const deposit = p.deposit;
+  const grandTotal = p.grandTotal;
   const waText = encodeURIComponent(`Halo Ndalem Pleret, saya ingin mengirimkan bukti pembayaran untuk pemesanan ${bookingRef} atas nama ${guestName}.`);
 
   return `<!DOCTYPE html>
@@ -139,9 +143,13 @@ function buildReceiptHtml(data: {
               <td colspan="2" style="padding:14px 20px;font-size:12px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Rincian Biaya</td>
             </tr>
             <tr style="border-top:1px solid #eee;">
-              <td style="padding:14px 20px;font-size:13px;color:#888;">Sewa (${nights} malam)</td>
-              <td style="padding:14px 20px;font-size:13px;color:#1a1a1a;text-align:right;">${formatIDR(totalPrice)}</td>
+              <td style="padding:14px 20px;font-size:13px;color:#888;">Sewa (${formatIDR(ppn)} × ${nights} malam)</td>
+              <td style="padding:14px 20px;font-size:13px;color:#1a1a1a;text-align:right;">${formatIDR(p.baseSubtotal)}</td>
             </tr>
+            ${p.discountPct > 0 ? `<tr style="border-top:1px solid #eee;">
+              <td style="padding:14px 20px;font-size:13px;color:#15803d;">Diskon ${p.discountLabel} (${p.discountPct}%)</td>
+              <td style="padding:14px 20px;font-size:13px;color:#15803d;text-align:right;">&minus;${formatIDR(p.discountAmount)}</td>
+            </tr>` : ""}
             <tr style="border-top:1px solid #eee;background:#fafafa;">
               <td style="padding:14px 20px;font-size:13px;color:#888;">
                 Deposit jaminan
@@ -205,12 +213,15 @@ function buildConfirmationHtml(data: {
   checkOut: string;
   nights: number;
   totalPrice: number;
+  pricePerNight?: number;
   guestCount: number;
 }): string {
   const { bookingRef, guestName, unitName, checkIn, checkOut, nights, totalPrice, guestCount } = data;
-  const deposit = 500000;
-  const roomTotal = totalPrice;
-  const grandTotal = roomTotal + deposit;
+  const ppn = data.pricePerNight ?? (nights > 0 ? Math.round(totalPrice / nights) : 0);
+  const p = computePricing(ppn, nights);
+  const deposit = p.deposit;
+  const roomTotal = p.stayTotal;
+  const grandTotal = p.grandTotal;
 
   return `<!DOCTYPE html>
 <html lang="id">
@@ -284,7 +295,15 @@ function buildConfirmationHtml(data: {
               <td colspan="2" style="padding:14px 20px;font-size:12px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Rincian Biaya</td>
             </tr>
             <tr style="border-top:1px solid #eee;">
-              <td style="padding:14px 20px;font-size:13px;color:#888;">Sewa (${nights} malam)</td>
+              <td style="padding:14px 20px;font-size:13px;color:#888;">Sewa (${formatIDR(ppn)} × ${nights} malam)</td>
+              <td style="padding:14px 20px;font-size:13px;color:#1a1a1a;text-align:right;">${formatIDR(p.baseSubtotal)}</td>
+            </tr>
+            ${p.discountPct > 0 ? `<tr style="border-top:1px solid #eee;">
+              <td style="padding:14px 20px;font-size:13px;color:#15803d;">Diskon ${p.discountLabel} (${p.discountPct}%)</td>
+              <td style="padding:14px 20px;font-size:13px;color:#15803d;text-align:right;">&minus;${formatIDR(p.discountAmount)}</td>
+            </tr>` : ""}
+            <tr style="border-top:1px solid #eee;background:#fafafa;">
+              <td style="padding:14px 20px;font-size:13px;color:#888;">Subtotal kamar (setelah diskon)</td>
               <td style="padding:14px 20px;font-size:13px;color:#1a1a1a;text-align:right;">${formatIDR(roomTotal)}</td>
             </tr>
             <tr style="border-top:1px solid #eee;background:#fafafa;">
@@ -371,6 +390,7 @@ export async function sendBookingReceived(data: {
   checkOut: string;
   nights: number;
   totalPrice: number;
+  pricePerNight?: number;
   guestCount: number;
 }): Promise<void> {
   const resend = getResend();
@@ -396,6 +416,7 @@ export async function sendBookingConfirmation(data: {
   checkOut: string;
   nights: number;
   totalPrice: number;
+  pricePerNight?: number;
   guestCount: number;
 }): Promise<void> {
   const resend = getResend();

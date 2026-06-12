@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatIDR } from "@/hooks/use-units";
+import { computePricing } from "@shared/pricing";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface OrderDetail {
@@ -22,6 +23,7 @@ interface OrderDetail {
   checkOut: string;
   nights: number;
   totalPrice: number;
+  pricePerNight?: number;
   guestCount: number;
   status: "pending" | "confirmed" | "cancelled";
   paymentStatus: "pending" | "paid";
@@ -30,7 +32,6 @@ interface OrderDetail {
 }
 
 const WHATSAPP_NUMBER = "6285121314631";
-const DEPOSIT = 500000;
 
 function formatDate(d: string) {
   return format(new Date(d), "EEEE, dd MMMM yyyy", { locale: idLocale });
@@ -121,16 +122,10 @@ export default function OrderPage() {
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
   }
 
-  // Discount calculation (mirror of BookingModal logic)
-  function getDiscountPct(nights: number) {
-    if (nights >= 21) return 12;
-    if (nights >= 14) return 8;
-    if (nights >= 7)  return 5;
-    return 0;
-  }
-
-  const pricePerNight = order ? Math.round((order.totalPrice - DEPOSIT) / order.nights) : 0;
-  const discountPct   = order ? getDiscountPct(order.nights) : 0;
+  // Harga: SATU sumber kebenaran dari shared/pricing (sama dgn date-picker & server).
+  const ppn = order ? (order.pricePerNight ?? (order.nights > 0 ? Math.round(order.totalPrice / order.nights) : 0)) : 0;
+  const pricing = order ? computePricing(ppn, order.nights) : null;
+  const discountPct = pricing?.discountPct ?? 0;
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) return (
@@ -296,16 +291,20 @@ export default function OrderPage() {
           </div>
           <div className="p-5 space-y-2.5 text-sm">
             <div className="flex justify-between text-muted-foreground">
-              <span>{formatIDR(pricePerNight)} × {order.nights} malam</span>
+              <span>{formatIDR(ppn)} × {order.nights} malam</span>
               <span className={discountPct > 0 ? "line-through text-muted-foreground/50" : ""}>
-                {formatIDR(pricePerNight * order.nights)}
+                {formatIDR(pricing!.baseSubtotal)}
               </span>
             </div>
             {discountPct > 0 && (
               <>
                 <div className="flex justify-between items-center text-green-700 text-xs">
-                  <span className="flex items-center gap-1"><Tag className="w-3 h-3" /> Diskon {discountPct}%</span>
-                  <span>−{formatIDR(Math.round(pricePerNight * order.nights * discountPct / 100))}</span>
+                  <span className="flex items-center gap-1"><Tag className="w-3 h-3" /> Diskon {pricing!.discountLabel} ({discountPct}%)</span>
+                  <span>−{formatIDR(pricing!.discountAmount)}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Subtotal kamar (setelah diskon)</span>
+                  <span className="font-medium text-foreground">{formatIDR(pricing!.stayTotal)}</span>
                 </div>
               </>
             )}
@@ -314,11 +313,11 @@ export default function OrderPage() {
                 Deposit jaminan
                 <span className="block text-xs text-muted-foreground/60">Dikembalikan saat check-out</span>
               </span>
-              <span>{formatIDR(DEPOSIT)}</span>
+              <span>{formatIDR(pricing!.deposit)}</span>
             </div>
             <div className="flex justify-between font-bold text-base pt-2 border-t border-border">
               <span>Total Pembayaran</span>
-              <span className="text-[#2d1a0e]">{formatIDR(order.totalPrice)}</span>
+              <span className="text-[#2d1a0e]">{formatIDR(pricing!.grandTotal)}</span>
             </div>
           </div>
         </div>

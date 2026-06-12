@@ -12,17 +12,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatIDR } from "@/hooks/use-units";
+import { computePricing } from "@shared/pricing";
 import { getDaysInMonth, addMonths, isBefore, isToday, format } from "date-fns";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Booking {
   id: number; bookingRef: string; unitId: number; unitName: string;
   guestName: string; guestPhone: string; guestEmail: string;
-  checkIn: string; checkOut: string; nights: number; totalPrice: number;
+  checkIn: string; checkOut: string; nights: number; totalPrice: number; pricePerNight?: number;
   status: string; paymentStatus: string; guestCount: number; notes?: string; adminNotes?: string;
   createdAt: string;
 }
 interface BlockedDate { id: number; unitId: number; date: string; reason?: string; }
+
+// Harga total yang DIBAYAR customer (kamar setelah diskon + deposit) — satu sumber: shared/pricing.
+function grandTotalOf(b: { pricePerNight?: number; totalPrice: number; nights: number }): number {
+  const ppn = b.pricePerNight ?? (b.nights > 0 ? Math.round(b.totalPrice / b.nights) : 0);
+  return computePricing(ppn, b.nights).grandTotal;
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STATUS_COLORS: Record<string, string> = {
@@ -676,14 +683,15 @@ function BookingRow({ booking, token, onRefresh }: { booking: Booking; token: st
   });
   const [dateAvailability, setDateAvailability] = useState<"idle" | "checking" | "available" | "conflict">("idle");
 
-  const pricePerNight = booking.nights > 0 ? Math.round(booking.totalPrice / booking.nights) : 600_000;
+  const pricePerNight = booking.pricePerNight ?? (booking.nights > 0 ? Math.round(booking.totalPrice / booking.nights) : 600_000);
+  const bookingGrand = computePricing(pricePerNight, booking.nights).grandTotal;
   const draftNights = (() => {
     const d1 = new Date(dateDraft.checkIn + "T12:00:00Z");
     const d2 = new Date(dateDraft.checkOut + "T12:00:00Z");
     const diff = Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
     return diff > 0 ? diff : 0;
   })();
-  const draftTotal = pricePerNight * draftNights;
+  const draftTotal = computePricing(pricePerNight, draftNights).grandTotal;
 
   // Auto-check availability saat tanggal berubah (debounce 600ms)
   useEffect(() => {
@@ -777,7 +785,7 @@ function BookingRow({ booking, token, onRefresh }: { booking: Booking; token: st
             </span>
           </div>
           <p className="font-semibold text-sm mt-1">{booking.guestName}</p>
-          <p className="text-xs text-muted-foreground">{booking.unitName} · {booking.nights} malam · {formatIDR(booking.totalPrice)}</p>
+          <p className="text-xs text-muted-foreground">{booking.unitName} · {booking.nights} malam · {formatIDR(bookingGrand)}</p>
           <p className="text-xs text-muted-foreground">{booking.checkIn} → {booking.checkOut}</p>
         </div>
         <div className="flex items-center gap-1 ml-2 shrink-0">
@@ -854,9 +862,9 @@ function BookingRow({ booking, token, onRefresh }: { booking: Booking; token: st
                     <span className="text-muted-foreground">
                       Total: <strong className="text-foreground">{formatIDR(draftTotal)}</strong>
                     </span>
-                    {(draftNights !== booking.nights || draftTotal !== booking.totalPrice) && (
+                    {(draftNights !== booking.nights || draftTotal !== bookingGrand) && (
                       <span className="text-amber-600 dark:text-amber-400 text-[10px] bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 px-1.5 py-0.5 rounded-full">
-                        sebelumnya {booking.nights} malam · {formatIDR(booking.totalPrice)}
+                        sebelumnya {booking.nights} malam · {formatIDR(bookingGrand)}
                       </span>
                     )}
                   </div>
@@ -1070,7 +1078,7 @@ function DownloadPanel({ bookings, onClose }: { bookings: Booking[]; onClose: ()
     ];
     const rows = data.map((b) => [
       b.bookingRef, b.guestName, b.guestPhone, b.guestEmail, b.unitName,
-      b.checkIn.slice(0, 10), b.checkOut.slice(0, 10), b.nights, b.totalPrice, b.guestCount,
+      b.checkIn.slice(0, 10), b.checkOut.slice(0, 10), b.nights, grandTotalOf(b), b.guestCount,
       STATUS_LABELS[b.status] ?? b.status,
       PAYMENT_LABELS[b.paymentStatus] ?? b.paymentStatus,
       b.notes ?? "", b.adminNotes ?? "",
@@ -1097,7 +1105,7 @@ function DownloadPanel({ bookings, onClose }: { bookings: Booking[]; onClose: ()
         "Check-in": b.checkIn.slice(0, 10),
         "Check-out": b.checkOut.slice(0, 10),
         "Malam": b.nights,
-        "Total Harga (IDR)": b.totalPrice,
+        "Total Harga (IDR)": grandTotalOf(b),
         "Jumlah Tamu": b.guestCount,
         "Status Booking": STATUS_LABELS[b.status] ?? b.status,
         "Status Pembayaran": PAYMENT_LABELS[b.paymentStatus] ?? b.paymentStatus,
@@ -1129,7 +1137,7 @@ function DownloadPanel({ bookings, onClose }: { bookings: Booking[]; onClose: ()
         <td>${b.checkIn.slice(0, 10)}</td>
         <td>${b.checkOut.slice(0, 10)}</td>
         <td style="text-align:center">${b.nights}</td>
-        <td style="text-align:right">Rp ${b.totalPrice.toLocaleString("id-ID")}</td>
+        <td style="text-align:right">Rp ${grandTotalOf(b).toLocaleString("id-ID")}</td>
         <td style="text-align:center">${b.guestCount}</td>
         <td><span class="badge ${b.status}">${STATUS_LABELS[b.status] ?? b.status}</span></td>
         <td><span class="badge ${b.paymentStatus === "paid" ? "paid" : "unpaid"}">${PAYMENT_LABELS[b.paymentStatus] ?? b.paymentStatus}</span></td>
@@ -1575,7 +1583,7 @@ function AdminCalendarPreview({ bookings, blockedDates }: { bookings: Booking[];
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <div className="text-xs font-semibold">{formatIDR(b.totalPrice)}</div>
+                  <div className="text-xs font-semibold">{formatIDR(grandTotalOf(b))}</div>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${STATUS_COLORS[b.status] ?? ""}`}>
                     {STATUS_LABELS[b.status] ?? b.status}
                   </span>

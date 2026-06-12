@@ -4,15 +4,14 @@
 #   .\deploy.ps1                 -> tanya pesan commit, lalu deploy penuh
 #   .\deploy.ps1 "fix navbar"    -> deploy penuh dengan pesan commit
 #   .\deploy.ps1 -Fast           -> restart container tanpa rebuild (~10 dtk)
-#   .\deploy.ps1 -NoGit "msg"    -> deploy ke VPS tanpa push git
+#   .\deploy.ps1 -NoGit          -> deploy ke VPS tanpa git lokal (kode sudah di GitHub)
 #
 # Cara pakai: klik kanan file ini -> "Run with PowerShell".
-# Build cepat: BuildKit + layer caching -> ubah kode = ~30-90 dtk (skip npm install).
 # =============================================================================
 param(
     [string]$msg = "",
-    [switch]$Fast,      # restart tanpa rebuild image
-    [switch]$NoGit      # lewati push git
+    [switch]$Fast,
+    [switch]$NoGit
 )
 
 $ErrorActionPreference = "Stop"
@@ -29,7 +28,6 @@ if (-not $NoGit) {
         $msg = Read-Host "Pesan commit (Enter = 'chore: update')"
         if ($msg -eq "") { $msg = "chore: update" }
     }
-
     Write-Host "[1/3] Push ke GitHub..." -ForegroundColor Yellow
     git add .
     git commit -m $msg 2>&1 | Out-Host
@@ -46,20 +44,19 @@ if (-not $NoGit) {
 
 # --- 2. Deploy ke VPS --------------------------------------------------------
 Write-Host "[2/3] Deploy ke VPS..." -ForegroundColor Yellow
-
 if ($Fast) {
     $remote = "cd /docker/n8n && docker compose up -d ndalem"
     Write-Host "      mode: FAST (restart tanpa rebuild)" -ForegroundColor DarkGray
 } else {
-    $remote = "cd /docker/n8n/ndalem-pleret && git pull && cd /docker/n8n && " +
-              "DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker compose up -d --build ndalem"
+    $remote = "cd /docker/n8n/ndalem-pleret && rm -f Dockerfile && git fetch origin main && git reset --hard origin/main && cd /docker/n8n && DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker compose up -d --build ndalem"
 }
-
 ssh -i $VPS_KEY -o StrictHostKeyChecking=no "root@$VPS_IP" $remote
 if ($LASTEXITCODE -ne 0) { Fail "Deploy VPS gagal." }
 Write-Host "[OK] Container deployed" -ForegroundColor Green
 
 # --- 3. Health check + log ---------------------------------------------------
+# Catatan: JANGAN pakai $(...) di string SSH -> PowerShell akan evaluasi lokal.
+# Pakai 'docker compose logs' (tanpa subshell) supaya aman.
 Write-Host "[3/3] Cek kesehatan situs..." -ForegroundColor Yellow
 $ok = $false
 foreach ($i in 1..10) {
@@ -68,9 +65,7 @@ foreach ($i in 1..10) {
         if ($r.StatusCode -eq 200) { $ok = $true; break }
     } catch { Start-Sleep -Seconds 3 }
 }
-
-ssh -i $VPS_KEY -o StrictHostKeyChecking=no "root@$VPS_IP" `
-    "docker logs --tail 5 `$(docker ps --filter 'name=ndalem' --format '{{.Names}}' | head -1)"
+ssh -i $VPS_KEY -o StrictHostKeyChecking=no "root@$VPS_IP" "cd /docker/n8n && docker compose logs --tail 5 ndalem"
 
 $sw.Stop()
 $elapsed = [math]::Round($sw.Elapsed.TotalSeconds, 0)

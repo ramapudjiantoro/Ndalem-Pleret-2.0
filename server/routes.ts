@@ -2,6 +2,7 @@ import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { insertBookingSchema, insertInquirySchema } from "@shared/schema";
+import { computePricing } from "@shared/pricing";
 import { sendBookingReceived, sendBookingConfirmation, verifyEmailConfig } from "./email";
 import { createBookingCalendarEvents, deleteBookingCalendarEvents, testCalendarConnection } from "./calendar";
 import { sendPushToAll, initPush, isPushReady, getPublicKey } from "./push";
@@ -104,8 +105,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(409).json({ message: "Maaf, tanggal yang Anda pilih sudah dipesan. Silakan pilih tanggal lain." });
       }
 
-      // Calculate total
-      const totalPrice = unit.pricePerNight * nights;
+      // Calculate total — DISKON diterapkan di sini (satu sumber: shared/pricing).
+      // totalPrice disimpan = harga kamar SETELAH diskon, TANPA deposit.
+      const pricing = computePricing(unit.pricePerNight, nights);
+      const totalPrice = pricing.stayTotal;
 
       // Create booking
       const booking = await storage.createBooking({
@@ -133,6 +136,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         checkOut: booking.checkOut,
         nights: booking.nights,
         totalPrice: booking.totalPrice,
+        pricePerNight: unit.pricePerNight,
         guestCount: booking.guestCount,
       }).catch((err) => console.error("❌ Receipt email failed:", err?.message ?? err));
 
@@ -167,9 +171,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.status(404).json({ message: "Booking tidak ditemukan" });
     }
 
-    // Also fetch unit name
+    // Also fetch unit name + price (untuk breakdown harga di OrderPage)
     const unit = await storage.getUnit(booking.unitId);
-    res.json({ ...booking, unitName: unit?.name ?? "Unknown Unit" });
+    res.json({
+      ...booking,
+      unitName: unit?.name ?? "Unknown Unit",
+      pricePerNight: unit?.pricePerNight ?? (booking.nights > 0 ? Math.round(booking.totalPrice / booking.nights) : 0),
+    });
   });
 
   // ── Admin: Test Email ──────────────────────────────────────────────────────
@@ -309,8 +317,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(409).json({ message: "Tanggal bentrok dengan booking atau pemblokiran lain" });
       }
       const unit = await storage.getUnit(booking.unitId);
-      const totalPrice = (unit?.pricePerNight ?? booking.totalPrice / booking.nights) * nights;
-      updated = await storage.updateBookingDates(id, checkIn, checkOut, nights, Math.round(totalPrice));
+      const ppn = unit?.pricePerNight ?? Math.round(booking.totalPrice / booking.nights);
+      const pricing = computePricing(ppn, nights);
+      updated = await storage.updateBookingDates(id, checkIn, checkOut, nights, pricing.stayTotal);
     }
     if (!updated) {
       return res.status(404).json({ message: "Booking tidak ditemukan" });
@@ -332,6 +341,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         checkOut: updated.checkOut,
         nights: updated.nights,
         totalPrice: updated.totalPrice,
+        pricePerNight: unit?.pricePerNight ?? 0,
         guestCount: updated.guestCount,
       }).catch((err) => console.error("❌ Confirmation email failed:", err?.message ?? err));
 

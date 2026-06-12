@@ -10,6 +10,7 @@ import { useUnits, formatIDR } from "@/hooks/use-units";
 import { PriceDisplay } from "@/components/PriceDisplay";
 import { useAvailability } from "@/hooks/use-availability";
 import { useQueryClient } from "@tanstack/react-query";
+import { getDiscount, DEPOSIT } from "@shared/pricing";
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -27,16 +28,9 @@ const UNIT_PREVIEW: Record<number, string> = {
   2: "/tengah/ruang-keluarga.jpg",
 };
 const DAYS_ID = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
-const DEPOSIT = 500000;
 const WHATSAPP_NUMBER = "6285121314631";
+// DEPOSIT & getDiscount diimpor dari @shared/pricing (satu sumber kebenaran).
 
-// ─── Discount tiers (same logic as PricingSection) ────────────────────────────
-function getDiscount(nights: number): { pct: number; label: string } {
-  if (nights >= 21) return { pct: 12, label: `3 Minggu (${nights} malam)` };
-  if (nights >= 14) return { pct: 8,  label: `2 Minggu (${nights} malam)` };
-  if (nights >= 7)  return { pct: 5,  label: `1 Minggu (${nights} malam)` };
-  return { pct: 0, label: "" };
-}
 
 // ─── Mini Calendar ────────────────────────────────────────────────────────────
 function MiniCalendar({
