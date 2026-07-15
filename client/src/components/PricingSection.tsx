@@ -2,66 +2,77 @@ import { motion } from "framer-motion";
 import { Calendar, MessageCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/SectionHeading";
+import { useUnits } from "@/hooks/use-units";
+import { computePricing } from "@shared/pricing";
 
 const WHATSAPP_URL = "https://wa.me/6285121314631";
-const BASE_RATE = 600_000;
+const FALLBACK_RATE = 600_000; // dipakai hanya saat /api/units belum selesai fetch
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmtIDR(n: number) {
   return "Rp " + n.toLocaleString("id-ID");
 }
 
-// ── Data ──────────────────────────────────────────────────────────────────────
-const TIERS = [
-  {
-    id: "nightly",
-    label: "Per Malam",
-    duration: "1–6 malam",
-    normalTotal: null,
-    finalTotal: null,
-    perNight: BASE_RATE,
-    discount: null,
-    savingsAmount: null,
-    note: "Tarif standar per malam",
-    highlight: true,
-  },
-  {
-    id: "week1",
-    label: "1 Minggu",
-    duration: "7 malam",
-    normalTotal: 4_200_000,
-    finalTotal: 3_990_000,
-    perNight: Math.round(3_990_000 / 7),
-    discount: 5,
-    savingsAmount: 210_000,
-    note: "Hemat 5% dari tarif normal",
-    highlight: false,
-  },
-  {
-    id: "week2",
-    label: "2 Minggu",
-    duration: "14 malam",
-    normalTotal: 8_400_000,
-    finalTotal: 7_728_000,
-    perNight: Math.round(7_728_000 / 14),
-    discount: 8,
-    savingsAmount: 672_000,
-    note: "Hemat 8% dari tarif normal",
-    highlight: false,
-  },
-  {
-    id: "week3",
-    label: "3 Minggu",
-    duration: "21 malam",
-    normalTotal: 12_600_000,
-    finalTotal: 11_088_000,
-    perNight: Math.round(11_088_000 / 21),
-    discount: 12,
-    savingsAmount: 1_512_000,
-    note: "Hemat 12% dari tarif normal",
-    highlight: false,
-  },
-] as const;
+// Bangun tier harga (per-malam, 1/2/3 minggu) dari satu harga dasar per malam.
+// Diskon dihitung via computePricing() — satu sumber kebenaran yang sama
+// dipakai server & booking form, jadi selalu konsisten dengan email & total tagihan.
+function buildTiers(pricePerNight: number) {
+  const nightly = computePricing(pricePerNight, 1);
+  const week1 = computePricing(pricePerNight, 7);
+  const week2 = computePricing(pricePerNight, 14);
+  const week3 = computePricing(pricePerNight, 21);
+
+  return [
+    {
+      id: "nightly",
+      label: "Per Malam",
+      duration: "1–6 malam",
+      normalTotal: null as number | null,
+      finalTotal: null as number | null,
+      perNight: nightly.pricePerNight,
+      discount: null as number | null,
+      savingsAmount: null as number | null,
+      note: "Tarif standar per malam",
+      highlight: true,
+    },
+    {
+      id: "week1",
+      label: "1 Minggu",
+      duration: "7 malam",
+      normalTotal: week1.baseSubtotal,
+      finalTotal: week1.stayTotal,
+      perNight: Math.round(week1.stayTotal / week1.nights),
+      discount: week1.discountPct,
+      savingsAmount: week1.discountAmount,
+      note: `Hemat ${week1.discountPct}% dari tarif normal`,
+      highlight: false,
+    },
+    {
+      id: "week2",
+      label: "2 Minggu",
+      duration: "14 malam",
+      normalTotal: week2.baseSubtotal,
+      finalTotal: week2.stayTotal,
+      perNight: Math.round(week2.stayTotal / week2.nights),
+      discount: week2.discountPct,
+      savingsAmount: week2.discountAmount,
+      note: `Hemat ${week2.discountPct}% dari tarif normal`,
+      highlight: false,
+    },
+    {
+      id: "week3",
+      label: "3 Minggu",
+      duration: "21 malam",
+      normalTotal: week3.baseSubtotal,
+      finalTotal: week3.stayTotal,
+      perNight: Math.round(week3.stayTotal / week3.nights),
+      discount: week3.discountPct,
+      savingsAmount: week3.discountAmount,
+      note: `Hemat ${week3.discountPct}% dari tarif normal`,
+      highlight: false,
+    },
+  ];
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 interface PricingSectionProps {
@@ -69,6 +80,14 @@ interface PricingSectionProps {
 }
 
 export function PricingSection({ onOpenBooking }: PricingSectionProps) {
+  const { data: units = [] } = useUnits();
+  // Harga dasar diambil dari unit termurah — semua unit dipatok harga sama saat ini;
+  // kalau nanti beda, tabel ini tetap konsisten menampilkan harga "mulai dari".
+  const pricePerNight = units.length > 0
+    ? Math.min(...units.map((u) => u.pricePerNight))
+    : FALLBACK_RATE;
+  const TIERS = buildTiers(pricePerNight);
+
   return (
     <section id="pricing" className="py-20 bg-background">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -124,7 +143,7 @@ export function PricingSection({ onOpenBooking }: PricingSectionProps) {
               {tier.id === "nightly" && (
                 <div className="flex-1">
                   <div className={`text-2xl sm:text-3xl font-bold font-display tabular-nums leading-none ${tier.highlight ? "text-white" : "text-primary"}`}>
-                    {fmtIDR(BASE_RATE)}
+                    {fmtIDR(pricePerNight)}
                   </div>
                   <div className={`text-xs mt-1 ${tier.highlight ? "text-white/70" : "text-muted-foreground"}`}>per malam</div>
                 </div>

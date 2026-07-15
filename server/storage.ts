@@ -60,6 +60,7 @@ export interface IStorage {
   listUnits(): Promise<Unit[]>;
   getUnit(id: number): Promise<Unit | undefined>;
   seedUnitsIfEmpty(): Promise<void>;
+  updateUnitPrice(id: number, pricePerNight: number): Promise<Unit | undefined>;
 
   // Availability
   getBookedDates(unitId: number, start: string, end: string): Promise<string[]>;
@@ -126,6 +127,15 @@ export class DatabaseStorage implements IStorage {
 
   async getUnit(id: number): Promise<Unit | undefined> {
     const [unit] = await db.select().from(units).where(eq(units.id, id));
+    return unit;
+  }
+
+  async updateUnitPrice(id: number, pricePerNight: number): Promise<Unit | undefined> {
+    const [unit] = await db
+      .update(units)
+      .set({ pricePerNight })
+      .where(eq(units.id, id))
+      .returning();
     return unit;
   }
 

@@ -24,6 +24,7 @@ interface Booking {
   createdAt: string;
 }
 interface BlockedDate { id: number; unitId: number; date: string; reason?: string; }
+interface Unit { id: number; name: string; slug: string; pricePerNight: number; }
 
 // Harga total yang DIBAYAR customer (kamar setelah diskon + deposit) — satu sumber: shared/pricing.
 function grandTotalOf(b: { pricePerNight?: number; totalPrice: number; nights: number }): number {
@@ -1598,9 +1599,143 @@ function AdminCalendarPreview({ bookings, blockedDates }: { bookings: Booking[];
 }
 
 
+// ─── Confirm Price Change Modal ────────────────────────────────────────────────
+function ConfirmPriceModal({ unitName, oldPrice, newPrice, loading, onConfirm, onCancel }: {
+  unitName: string; oldPrice: number; newPrice: number; loading: boolean;
+  onConfirm: () => void; onCancel: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onCancel}>
+      <div className="bg-white dark:bg-card rounded-2xl shadow-2xl border border-border/50 p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+            <Banknote className="w-4 h-4 text-primary" />
+          </div>
+          <h2 className="font-bold">Ubah Harga?</h2>
+        </div>
+        <p className="text-sm text-muted-foreground mb-5">
+          Ubah harga <strong className="text-foreground">{unitName}</strong> dari{" "}
+          <strong className="text-foreground">{formatIDR(oldPrice)}</strong> menjadi{" "}
+          <strong className="text-primary">{formatIDR(newPrice)}</strong> per malam?
+          Harga baru berlaku untuk pemesanan berikutnya.
+        </p>
+        <div className="flex gap-2">
+          <Button className="flex-1 h-9" onClick={onConfirm} disabled={loading}>
+            {loading ? "Menyimpan..." : "Ya, Ubah Harga"}
+          </Button>
+          <Button variant="ghost" className="flex-1 h-9" onClick={onCancel} disabled={loading}>
+            Batal
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Unit Price Card ────────────────────────────────────────────────────────────
+function UnitPriceCard({ unit, token, onRefresh }: { unit: Unit; token: string; onRefresh: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(unit.pricePerNight));
+  const [confirming, setConfirming] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const draftPrice = Number(draft);
+  const isValid = Number.isInteger(draftPrice) && draftPrice > 0;
+
+  function startEdit() {
+    setDraft(String(unit.pricePerNight));
+    setError("");
+    setEditing(true);
+  }
+
+  function requestSave() {
+    if (!isValid) { setError("Harga harus angka bulat lebih dari 0"); return; }
+    if (draftPrice === unit.pricePerNight) { setEditing(false); return; }
+    setError("");
+    setConfirming(true);
+  }
+
+  async function confirmSave() {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/units/${unit.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-admin-token": token },
+        body: JSON.stringify({ pricePerNight: draftPrice }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.message || "Gagal menyimpan harga");
+        return;
+      }
+      setConfirming(false);
+      setEditing(false);
+      onRefresh();
+    } catch {
+      setError("Koneksi gagal");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="bg-white dark:bg-card rounded-xl border border-border/50 p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="font-semibold text-sm">{unit.name}</p>
+          <p className="text-xs text-muted-foreground">Harga per malam</p>
+        </div>
+        {!editing && (
+          <button onClick={startEdit} className="text-xs text-primary hover:underline flex items-center gap-1">
+            <Pencil className="w-3 h-3" /> Edit Harga
+          </button>
+        )}
+      </div>
+
+      {editing ? (
+        <div className="mt-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Rp</span>
+            <Input
+              type="number"
+              value={draft}
+              onChange={(e) => { setDraft(e.target.value); setError(""); }}
+              className="h-9 max-w-[180px]"
+              autoFocus
+            />
+          </div>
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <div className="flex gap-2">
+            <Button size="sm" className="h-8 text-xs rounded-lg" onClick={requestSave} disabled={loading}>
+              <Check className="w-3 h-3 mr-1" /> Simpan
+            </Button>
+            <Button size="sm" variant="ghost" className="h-8 text-xs rounded-lg text-muted-foreground" onClick={() => setEditing(false)} disabled={loading}>
+              Batal
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-2xl font-bold font-display text-primary mt-2">{formatIDR(unit.pricePerNight)}</p>
+      )}
+
+      {confirming && (
+        <ConfirmPriceModal
+          unitName={unit.name}
+          oldPrice={unit.pricePerNight}
+          newPrice={draftPrice}
+          loading={loading}
+          onConfirm={confirmSave}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── Admin Dashboard (all hooks here, after auth confirmed) ───────────────────
 function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => void }) {
-  const [activeTab, setActiveTab] = useState<"bookings" | "blocked" | "calendar">("bookings");
+  const [activeTab, setActiveTab] = useState<"bookings" | "blocked" | "calendar" | "pricing">("bookings");
   const [calTestResult, setCalTestResult] = useState<null | { ok: boolean; envOk: boolean; tokenOk: boolean; listOk: boolean; details: string }>(null);
   const [calTestLoading, setCalTestLoading] = useState(false);
   const [blockForm, setBlockForm] = useState({ unitId: "1", date: "", reason: "" });
@@ -1638,6 +1773,15 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
     queryKey: ["admin-blocked", token],
     queryFn: async () => {
       const res = await fetch("/api/admin/blocked-dates", { headers });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const { data: units = [], refetch: refetchUnits } = useQuery<Unit[]>({
+    queryKey: ["admin-units"],
+    queryFn: async () => {
+      const res = await fetch("/api/units");
       if (!res.ok) return [];
       return res.json();
     },
@@ -1821,6 +1965,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
             { id: "bookings" as const, label: "Pemesanan" },
             { id: "calendar" as const, label: "Preview Kalender" },
             { id: "blocked" as const, label: "Kelola Tanggal" },
+            { id: "pricing" as const, label: "Harga" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -1936,6 +2081,21 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
               )}
             </div>
             <AdminCalendarPreview bookings={bookings} blockedDates={blockedDates} />
+          </div>
+        )}
+
+        {/* Harga Tab */}
+        {activeTab === "pricing" && (
+          <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Ubah harga per malam tiap unit. Harga baru otomatis dipakai untuk pemesanan berikutnya —
+              termasuk perhitungan diskon, total tagihan, dan email yang dikirim ke tamu.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {units.map((unit) => (
+                <UnitPriceCard key={unit.id} unit={unit} token={token} onRefresh={refetchUnits} />
+              ))}
+            </div>
           </div>
         )}
 

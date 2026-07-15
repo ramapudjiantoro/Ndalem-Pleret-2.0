@@ -61,6 +61,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.json(unitList);
   });
 
+  // ── Admin: Update unit price ───────────────────────────────────────────────
+  app.patch("/api/admin/units/:id", adminAuth, async (req, res) => {
+    const id = Number(req.params.id);
+    const { pricePerNight } = req.body as { pricePerNight?: unknown };
+    const price = Number(pricePerNight);
+    if (!Number.isInteger(price) || price <= 0) {
+      return res.status(400).json({ message: "Harga harus berupa angka bulat positif" });
+    }
+    const unit = await storage.updateUnitPrice(id, price);
+    if (!unit) return res.status(404).json({ message: "Unit tidak ditemukan" });
+    res.json(unit);
+  });
+
   // ── Public: Availability ───────────────────────────────────────────────────
   app.get("/api/availability", async (req, res) => {
     try {
