@@ -1736,8 +1736,6 @@ function UnitPriceCard({ unit, token, onRefresh }: { unit: Unit; token: string; 
 // ─── Admin Dashboard (all hooks here, after auth confirmed) ───────────────────
 function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState<"bookings" | "blocked" | "calendar" | "pricing">("bookings");
-  const [calTestResult, setCalTestResult] = useState<null | { ok: boolean; envOk: boolean; tokenOk: boolean; listOk: boolean; details: string }>(null);
-  const [calTestLoading, setCalTestLoading] = useState(false);
   const [blockForm, setBlockForm] = useState({ unitId: "1", date: "", reason: "" });
   const [statusFilter, setStatusFilter] = useState("all");
   const [showDownload, setShowDownload] = useState(false);
@@ -2026,60 +2024,6 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
         {/* Calendar Preview Tab */}
         {activeTab === "calendar" && (
           <div className="space-y-6">
-            {/* ── Google Calendar connection test ── */}
-            <div className="bg-white dark:bg-card rounded-xl border border-border/50 p-5 shadow-sm">
-              <h3 className="font-bold text-sm mb-1">Koneksi Google Calendar</h3>
-              <p className="text-xs text-muted-foreground mb-4">
-                Pastikan env vars (<code>GOOGLE_CLIENT_ID</code>, <code>GOOGLE_CLIENT_SECRET</code>, <code>GOOGLE_REFRESH_TOKEN</code>) sudah diset di Railway, lalu klik test.
-              </p>
-              <div className="flex items-center gap-3 flex-wrap">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="rounded-lg h-8 text-xs gap-1.5"
-                  disabled={calTestLoading}
-                  onClick={async () => {
-                    setCalTestLoading(true);
-                    setCalTestResult(null);
-                    try {
-                      const r = await fetch("/api/admin/test-calendar", { headers: { "x-admin-token": token } });
-                      const json = await r.json();
-                      setCalTestResult(json);
-                    } catch {
-                      setCalTestResult({ ok: false, envOk: false, tokenOk: false, listOk: false, details: "Gagal menghubungi server" });
-                    } finally {
-                      setCalTestLoading(false);
-                    }
-                  }}
-                >
-                  {calTestLoading ? "Mengecek…" : "Test Koneksi Kalender"}
-                </Button>
-                {calTestResult && (
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${calTestResult.ok ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}`}>
-                    {calTestResult.ok ? "✓ Terhubung" : "✗ Gagal"}
-                  </span>
-                )}
-              </div>
-              {calTestResult && (
-                <div className="mt-4 space-y-1.5 text-xs">
-                  {[
-                    { label: "Env vars", ok: calTestResult.envOk },
-                    { label: "OAuth2 token", ok: calTestResult.tokenOk },
-                    { label: "Akses kalender", ok: calTestResult.listOk },
-                  ].map(({ label, ok }) => (
-                    <div key={label} className="flex items-center gap-2">
-                      <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${ok ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                        {ok ? "✓" : "✗"}
-                      </span>
-                      <span className="text-muted-foreground">{label}</span>
-                    </div>
-                  ))}
-                  <p className="text-muted-foreground mt-2 leading-relaxed bg-muted/50 rounded-lg px-3 py-2">
-                    {calTestResult.details}
-                  </p>
-                </div>
-              )}
-            </div>
             <AdminCalendarPreview bookings={bookings} blockedDates={blockedDates} />
           </div>
         )}

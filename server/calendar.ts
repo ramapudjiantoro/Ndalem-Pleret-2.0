@@ -41,65 +41,6 @@ function extractGoogleError(err: any): string {
   return err?.message ?? String(err);
 }
 
-// ─── Diagnostik — dipanggil dari endpoint /api/admin/test-calendar ────────────
-export async function testCalendarConnection(): Promise<{
-  ok: boolean;
-  envOk: boolean;
-  tokenOk: boolean;
-  listOk: boolean;
-  details: string;
-}> {
-  const result = {
-    ok: false,
-    envOk: false,
-    tokenOk: false,
-    listOk: false,
-    details: "",
-  };
-
-  // 1. Cek env vars
-  const clientId     = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-
-  if (!clientId || !clientSecret || !refreshToken) {
-    result.details = `Env vars tidak lengkap — CLIENT_ID:${clientId ? "✓" : "✗"} SECRET:${clientSecret ? "✓" : "✗"} REFRESH:${refreshToken ? "✓" : "✗"}`;
-    return result;
-  }
-  result.envOk = true;
-
-  const auth = new google.auth.OAuth2(clientId, clientSecret);
-  auth.setCredentials({ refresh_token: refreshToken });
-
-  // 2. Coba refresh token untuk mendapat access token baru
-  try {
-    const { credentials } = await auth.refreshAccessToken();
-    if (!credentials.access_token) throw new Error("access_token kosong setelah refresh");
-    result.tokenOk = true;
-  } catch (err: any) {
-    result.details = `Token refresh gagal: ${extractGoogleError(err)}`;
-    return result;
-  }
-
-  // 3. Coba list events dari kalender (verifikasi akses ke kalender)
-  const cal = google.calendar({ version: "v3", auth });
-  try {
-    await cal.events.list({
-      calendarId: CALENDAR_ID,
-      maxResults: 1,
-      singleEvents: true,
-    });
-    result.listOk = true;
-  } catch (err: any) {
-    result.details = `Tidak bisa membaca kalender '${CALENDAR_ID}': ${extractGoogleError(err)}`;
-    return result;
-  }
-
-  result.ok = true;
-  result.details = `Semua OK — env vars ✓, token ✓, akses kalender '${CALENDAR_ID}' ✓`;
-  return result;
-}
-
 // ─── Buat Events Booking ──────────────────────────────────────────────────────
 export async function createBookingCalendarEvents(data: {
   bookingRef: string;

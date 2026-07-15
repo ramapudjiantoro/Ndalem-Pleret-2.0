@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { insertBookingSchema, insertInquirySchema } from "@shared/schema";
 import { computePricing } from "@shared/pricing";
 import { sendBookingReceived, sendBookingConfirmation, verifyEmailConfig } from "./email";
-import { createBookingCalendarEvents, deleteBookingCalendarEvents, testCalendarConnection } from "./calendar";
+import { createBookingCalendarEvents, deleteBookingCalendarEvents } from "./calendar";
 import { sendPushToAll, initPush, isPushReady, getPublicKey } from "./push";
 import { z } from "zod";
 
@@ -215,12 +215,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       console.error("❌ Test email failed:", err?.message ?? err);
       res.status(500).json({ ok: false, message: err?.message ?? "Unknown error" });
     }
-  });
-
-  // ── Admin: Test Google Calendar ───────────────────────────────────────────
-  app.get("/api/admin/test-calendar", adminAuth, async (_req, res) => {
-    const result = await testCalendarConnection();
-    res.status(result.ok ? 200 : 500).json(result);
   });
 
   // ── Admin: Login ───────────────────────────────────────────────────────────
