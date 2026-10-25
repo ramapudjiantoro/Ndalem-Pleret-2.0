@@ -144,13 +144,13 @@ export function LoginScreen({ onLogin }: { onLogin: (token: string, remember: bo
               <>
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-lg px-4 py-3 mb-4">
                   <p className="text-xs text-amber-800 dark:text-amber-300 leading-snug">
-                    Masukkan <strong>Master Key</strong> — yaitu password default bawaan Railway (dari env var <code className="bg-amber-100 dark:bg-amber-800/50 px-1 rounded">ADMIN_PASSWORD</code>). Master key ini selalu berfungsi meskipun kamu sudah mengganti password.
+                    Masukkan <strong>Master Key</strong> — yaitu password master yang diset di server (env var <code className="bg-amber-100 dark:bg-amber-800/50 px-1 rounded">ADMIN_PASSWORD</code>). Master key ini selalu berfungsi meskipun kamu sudah mengganti password.
                   </p>
                 </div>
                 <form onSubmit={handleReset} className="space-y-3">
                   <div>
                     <Label className="text-xs mb-1 block">Master Key</Label>
-                    <PasswordInput value={masterKey} onChange={setMasterKey} placeholder="Password default Railway" autoFocus />
+                    <PasswordInput value={masterKey} onChange={setMasterKey} placeholder="Master key (ADMIN_PASSWORD)" autoFocus />
                   </div>
                   <div>
                     <Label className="text-xs mb-1 block">Password Baru</Label>

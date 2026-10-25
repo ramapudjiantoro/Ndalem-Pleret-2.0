@@ -22,7 +22,7 @@ docs
 # Test & coverage
 coverage
 
-# Local env overrides (Railway inject via env vars)
+# Local env overrides (env asli di-inject saat container jalan)
 .env.local
 .env.*.local
 

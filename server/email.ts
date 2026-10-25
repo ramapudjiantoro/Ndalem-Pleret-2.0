@@ -4,7 +4,7 @@ import { formatIDR } from "@shared/format";
 import { WHATSAPP_NUMBER, WHATSAPP_URL } from "@shared/contact";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-// Resend uses HTTPS (port 443) — tidak diblokir Railway seperti SMTP (587/465)
+// Resend lewat HTTPS (port 443), bukan SMTP (587/465) yang sering diblokir hosting
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const EMAIL_FROM = "Ndalem Pleret <cs@ndalempleret.com>";
 
@@ -21,7 +21,7 @@ function getResend(): Resend | null {
 // ─── Startup check ────────────────────────────────────────────────────────────
 export async function verifyEmailConfig(): Promise<void> {
   if (!RESEND_API_KEY) {
-    console.error("❌ RESEND_API_KEY not set — add it to Railway Variables.");
+    console.error("❌ RESEND_API_KEY not set — add it to the server environment variables.");
     return;
   }
   console.log("✅ Resend API key is set — email ready.");

@@ -1,6 +1,6 @@
 // ─── Ndalem Pleret — Web Push Service ────────────────────────────────────────
 // Keys dibaca dari DB (adminConfig) agar bisa di-setup dari Admin Dashboard
-// tanpa perlu menyentuh Railway Variables.
+// tanpa perlu mengubah environment variable di server.
 
 import webPush from "web-push";
 
