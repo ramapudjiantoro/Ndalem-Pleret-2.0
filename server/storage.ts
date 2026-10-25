@@ -1,5 +1,5 @@
 import { db as rawDb } from "./db";
-import { eq, and, gt, lt, ne } from "drizzle-orm";
+import { eq, and, gt, gte, lt, ne } from "drizzle-orm";
 
 // Guard: throw a friendly error if DATABASE_URL was never set
 function requireDb() {
@@ -65,7 +65,7 @@ export interface IStorage {
   // Availability
   getBookedDates(unitId: number, start: string, end: string): Promise<string[]>;
   getBlockedDates(unitId?: number): Promise<BlockedDate[]>;
-  isDateRangeAvailable(unitId: number, checkIn: string, checkOut: string): Promise<boolean>;
+  isDateRangeAvailable(unitId: number, checkIn: string, checkOut: string, excludeBookingId?: number): Promise<boolean>;
 
   // Bookings
   createBooking(data: {
@@ -90,7 +90,6 @@ export interface IStorage {
 
   // Helpers
   getBookingById(id: number): Promise<Booking | undefined>;
-  isDateRangeAvailableExcluding(unitId: number, checkIn: string, checkOut: string, excludeBookingId: number): Promise<boolean>;
 
   // Admin password management
   getAdminPassword(): Promise<string>;
@@ -217,7 +216,10 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(blockedDates);
   }
 
-  async isDateRangeAvailable(unitId: number, checkIn: string, checkOut: string): Promise<boolean> {
+  // excludeBookingId: abaikan booking yang sedang diedit admin (ubah tanggal).
+  async isDateRangeAvailable(
+    unitId: number, checkIn: string, checkOut: string, excludeBookingId?: number,
+  ): Promise<boolean> {
     // Two bookings [A,B) and [C,D) overlap iff A < D AND C < B (strict)
     // This means a guest can check in on the same day another checks out.
     const conflictBookings = await db
@@ -227,30 +229,27 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(bookings.unitId, unitId),
           ne(bookings.status, "cancelled"),
+          excludeBookingId !== undefined ? ne(bookings.id, excludeBookingId) : undefined,
           lt(bookings.checkIn, checkOut),  // existing.checkIn < new.checkOut
           gt(bookings.checkOut, checkIn),  // existing.checkOut > new.checkIn
         )
-      );
+      )
+      .limit(1);
     if (conflictBookings.length > 0) return false;
 
-    // Check blocked dates — iterate using timezone-safe string logic
-    let cur = checkIn;
-    while (cur < checkOut) {
-      const blocked = await db
-        .select({ id: blockedDates.id })
-        .from(blockedDates)
-        .where(
-          and(
-            eq(blockedDates.unitId, unitId),
-            eq(blockedDates.date, cur)
-          )
-        );
-      if (blocked.length > 0) return false;
-      const d = new Date(cur + "T12:00:00Z");
-      d.setUTCDate(d.getUTCDate() + 1);
-      cur = d.toISOString().slice(0, 10);
-    }
-    return true;
+    // Blocked dates di malam menginap [checkIn, checkOut) — satu query untuk semua malam
+    const blocked = await db
+      .select({ id: blockedDates.id })
+      .from(blockedDates)
+      .where(
+        and(
+          eq(blockedDates.unitId, unitId),
+          gte(blockedDates.date, checkIn),
+          lt(blockedDates.date, checkOut),
+        )
+      )
+      .limit(1);
+    return blocked.length === 0;
   }
 
   // ── Bookings ───────────────────────────────────────────────────────────────
@@ -360,39 +359,6 @@ export class DatabaseStorage implements IStorage {
   async getBookingById(id: number): Promise<Booking | undefined> {
     const [booking] = await db.select().from(bookings).where(eq(bookings.id, id));
     return booking;
-  }
-
-  async isDateRangeAvailableExcluding(
-    unitId: number, checkIn: string, checkOut: string, excludeBookingId: number
-  ): Promise<boolean> {
-    // Same logic as isDateRangeAvailable but excludes the booking being edited
-    const conflictBookings = await db
-      .select({ id: bookings.id })
-      .from(bookings)
-      .where(
-        and(
-          eq(bookings.unitId, unitId),
-          ne(bookings.status, "cancelled"),
-          ne(bookings.id, excludeBookingId),
-          lt(bookings.checkIn, checkOut),
-          gt(bookings.checkOut, checkIn),
-        )
-      );
-    if (conflictBookings.length > 0) return false;
-
-    // Check blocked dates
-    let cur = checkIn;
-    while (cur < checkOut) {
-      const blocked = await db
-        .select({ id: blockedDates.id })
-        .from(blockedDates)
-        .where(and(eq(blockedDates.unitId, unitId), eq(blockedDates.date, cur)));
-      if (blocked.length > 0) return false;
-      const d = new Date(cur + "T12:00:00Z");
-      d.setUTCDate(d.getUTCDate() + 1);
-      cur = d.toISOString().slice(0, 10);
-    }
-    return true;
   }
 
   async deleteBooking(id: number): Promise<{ bookingRef: string } | undefined> {

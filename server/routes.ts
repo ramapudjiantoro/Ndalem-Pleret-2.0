@@ -294,7 +294,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.status(404).json({ message: "Booking tidak ditemukan" });
     }
 
-    const available = await storage.isDateRangeAvailableExcluding(booking.unitId, checkIn, checkOut, id);
+    const available = await storage.isDateRangeAvailable(booking.unitId, checkIn, checkOut, id);
     res.json({ available, nights });
   });
 
@@ -326,7 +326,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(404).json({ message: "Booking tidak ditemukan" });
       }
       // Validate availability (excluding this booking itself)
-      const available = await storage.isDateRangeAvailableExcluding(booking.unitId, checkIn, checkOut, id);
+      const available = await storage.isDateRangeAvailable(booking.unitId, checkIn, checkOut, id);
       if (!available) {
         return res.status(409).json({ message: "Tanggal bentrok dengan booking atau pemblokiran lain" });
       }
