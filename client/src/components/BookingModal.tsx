@@ -6,11 +6,13 @@ import { X, ChevronLeft, ChevronRight, Check, Copy, ExternalLink, Loader2, Alert
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useUnits, formatIDR } from "@/hooks/use-units";
+import { useUnits } from "@/hooks/use-units";
+import { formatIDR } from "@shared/format";
 import { PriceDisplay } from "@/components/PriceDisplay";
 import { useAvailability } from "@/hooks/use-availability";
 import { useQueryClient } from "@tanstack/react-query";
-import { getDiscount, DEPOSIT } from "@shared/pricing";
+import { computePricing, DEPOSIT } from "@shared/pricing";
+import { WHATSAPP_NUMBER } from "@shared/contact";
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -28,8 +30,7 @@ const UNIT_PREVIEW: Record<number, string> = {
   2: "/tengah/ruang-keluarga.jpg",
 };
 const DAYS_ID = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
-const WHATSAPP_NUMBER = "6285121314631";
-// DEPOSIT & getDiscount diimpor dari @shared/pricing (satu sumber kebenaran).
+// Harga & DEPOSIT dari @shared/pricing (satu sumber kebenaran).
 
 
 // ─── Mini Calendar ────────────────────────────────────────────────────────────
@@ -136,12 +137,9 @@ export function BookingModal({ isOpen, onClose, preselectedUnitId }: BookingModa
   const selectedUnit = units.find((u) => u.id === selectedUnitId) ?? null;
   const nights = checkIn && checkOut ? differenceInCalendarDays(checkOut, checkIn) : 0;
 
-  // ── Pricing with discount ──────────────────────────────────────────────────
-  const baseSubtotal  = selectedUnit ? selectedUnit.pricePerNight * nights : 0;
-  const { pct: discountPct, label: discountLabel } = getDiscount(nights);
-  const discountAmount = Math.round(baseSubtotal * discountPct / 100);
-  const stayTotal     = baseSubtotal - discountAmount;   // tarif menginap setelah diskon
-  const total         = stayTotal + (nights > 0 ? DEPOSIT : 0);
+  // ── Pricing with discount (stayTotal = tarif menginap setelah diskon) ────────
+  const { baseSubtotal, discountPct, discountLabel, discountAmount, stayTotal, grandTotal: total } =
+    computePricing(selectedUnit?.pricePerNight ?? 0, nights);
 
   // Reset state when modal opens
   useEffect(() => {

@@ -22,12 +22,3 @@ export function useUnits() {
     staleTime: 1000 * 60 * 10,
   });
 }
-
-export function formatIDR(amount: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}

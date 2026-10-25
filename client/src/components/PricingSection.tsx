@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/SectionHeading";
 import { useUnits } from "@/hooks/use-units";
 import { computePricing } from "@shared/pricing";
+import { WHATSAPP_URL } from "@shared/contact";
 
-const WHATSAPP_URL = "https://wa.me/6285121314631";
 const FALLBACK_RATE = 600_000; // dipakai hanya saat /api/units belum selesai fetch
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

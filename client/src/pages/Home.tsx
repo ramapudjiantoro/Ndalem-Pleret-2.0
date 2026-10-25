@@ -16,8 +16,10 @@ import { PricingSection } from "@/components/PricingSection";
 import { StickyBookingBar, FloatingBookingButton } from "@/components/StickyBookingBar";
 import { UnitDetailModal } from "@/components/UnitDetailModal";
 import { Button } from "@/components/ui/button";
-import { useUnits, formatIDR } from "@/hooks/use-units";
+import { useUnits } from "@/hooks/use-units";
+import { formatIDR } from "@shared/format";
 import { PriceDisplay } from "@/components/PriceDisplay";
+import { WHATSAPP_URL } from "@shared/contact";
 
 // Real photos (served from public/)
 const heroImg         = "/belakang/tampak-luar.jpg";
@@ -109,8 +111,6 @@ function CountUp({ value, delay = 0 }: { value: string; delay?: number }) {
     </div>
   );
 }
-
-const WHATSAPP_URL = "https://wa.me/6285121314631";
 
 export default function Home() {
   const [bookingOpen, setBookingOpen] = useState(false);

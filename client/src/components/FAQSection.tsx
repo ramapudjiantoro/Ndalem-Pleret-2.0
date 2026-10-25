@@ -3,8 +3,7 @@ import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { SectionHeading } from "@/components/SectionHeading";
-
-const WHATSAPP_URL = "https://wa.me/6285121314631";
+import { WHATSAPP_URL } from "@shared/contact";
 
 interface FAQItem {
   q: string;

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, BedDouble, Users, Wifi, Wind, Tv, ChefHat, Bath, Car, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatIDR } from "@/hooks/use-units";
+import { formatIDR } from "@shared/format";
 import { PriceDisplay } from "@/components/PriceDisplay";
 
 interface UnitDetail {

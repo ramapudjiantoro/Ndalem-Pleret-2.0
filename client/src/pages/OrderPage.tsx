@@ -8,8 +8,9 @@ import {
   RefreshCw, MapPin, Banknote, Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatIDR } from "@/hooks/use-units";
+import { formatIDR } from "@shared/format";
 import { computePricing } from "@shared/pricing";
+import { WHATSAPP_NUMBER } from "@shared/contact";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface OrderDetail {
@@ -30,8 +31,6 @@ interface OrderDetail {
   notes?: string;
   createdAt: string;
 }
-
-const WHATSAPP_NUMBER = "6285121314631";
 
 function formatDate(d: string) {
   return format(new Date(d), "EEEE, dd MMMM yyyy", { locale: idLocale });

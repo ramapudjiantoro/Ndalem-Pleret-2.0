@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { formatIDR } from "@/hooks/use-units";
+import { formatIDR } from "@shared/format";
 
 // Harga "asli" yang dicoret — ubah di sini kalau ingin ganti
 const ORIGINAL_PRICE = 850_000;

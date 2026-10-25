@@ -11,7 +11,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatIDR } from "@/hooks/use-units";
+import { formatIDR } from "@shared/format";
 import { computePricing } from "@shared/pricing";
 import { getDaysInMonth, addMonths, isBefore, isToday, format } from "date-fns";
 
@@ -89,6 +89,18 @@ function saveNotifKeys(today: string, keys: Set<string>) {
   try { localStorage.setItem(LS_KEYS, JSON.stringify({ date: today, keys: [...keys] })); } catch {}
 }
 
+// ─── API helper ───────────────────────────────────────────────────────────────
+// Semua endpoint /api/admin/* butuh header x-admin-token. Body (jika ada) dikirim sebagai JSON.
+function adminFetch(token: string, url: string, method = "GET", body?: unknown) {
+  return fetch(url, {
+    method,
+    headers: body === undefined
+      ? { "x-admin-token": token }
+      : { "Content-Type": "application/json", "x-admin-token": token },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+}
+
 // ─── Web Push helpers ─────────────────────────────────────────────────────────
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -107,9 +119,7 @@ async function registerWebPush(token: string): Promise<void> {
     await navigator.serviceWorker.ready;
 
     // Ambil VAPID public key dari server
-    const res = await fetch("/api/admin/vapid-public-key", {
-      headers: { "x-admin-token": token },
-    });
+    const res = await adminFetch(token, "/api/admin/vapid-public-key");
     if (!res.ok) return;
     const { publicKey } = await res.json();
     if (!publicKey) return; // VAPID belum dikonfigurasi di server
@@ -119,11 +129,7 @@ async function registerWebPush(token: string): Promise<void> {
     if (existing) {
       // Sudah subscribe — pastikan tersimpan di DB (idempotent)
       const { endpoint, keys } = existing.toJSON() as any;
-      await fetch("/api/admin/push-subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-token": token },
-        body: JSON.stringify({ endpoint, keys }),
-      });
+      await adminFetch(token, "/api/admin/push-subscribe", "POST", { endpoint, keys });
       return;
     }
 
@@ -134,11 +140,7 @@ async function registerWebPush(token: string): Promise<void> {
     });
 
     const { endpoint, keys } = sub.toJSON() as any;
-    await fetch("/api/admin/push-subscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-admin-token": token },
-      body: JSON.stringify({ endpoint, keys }),
-    });
+    await adminFetch(token, "/api/admin/push-subscribe", "POST", { endpoint, keys });
     console.log("✅ Push subscription registered");
   } catch (err) {
     console.warn("Push subscribe failed:", err);
@@ -582,11 +584,7 @@ function ChangePasswordModal({ token, onClose, onSuccess }: {
     if (newPw !== confirmPw) { setError("Konfirmasi password tidak cocok"); return; }
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-token": token },
-        body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
-      });
+      const res = await adminFetch(token, "/api/admin/change-password", "POST", { currentPassword: currentPw, newPassword: newPw });
       const data = await res.json();
       if (!res.ok) { setError(data.message || "Gagal mengubah password"); return; }
       setSuccess(true);
@@ -708,10 +706,7 @@ function BookingRow({ booking, token, onRefresh }: { booking: Booking; token: st
     setDateAvailability("checking");
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `/api/admin/bookings/${booking.id}/check-dates?checkIn=${dateDraft.checkIn}&checkOut=${dateDraft.checkOut}`,
-          { headers: { "x-admin-token": token } }
-        );
+        const res = await adminFetch(token, `/api/admin/bookings/${booking.id}/check-dates?checkIn=${dateDraft.checkIn}&checkOut=${dateDraft.checkOut}`);
         const data = await res.json();
         setDateAvailability(data.available ? "available" : "conflict");
       } catch {
@@ -724,11 +719,7 @@ function BookingRow({ booking, token, onRefresh }: { booking: Booking; token: st
   async function saveDates() {
     if (dateAvailability !== "available" || draftNights < 1) return;
     setLoading(true);
-    await fetch(`/api/admin/bookings/${booking.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", "x-admin-token": token },
-      body: JSON.stringify({ checkIn: dateDraft.checkIn, checkOut: dateDraft.checkOut }),
-    });
+    await adminFetch(token, `/api/admin/bookings/${booking.id}`, "PATCH", { checkIn: dateDraft.checkIn, checkOut: dateDraft.checkOut });
     setLoading(false);
     setEditingDates(false);
     setDateAvailability("idle");
@@ -737,22 +728,14 @@ function BookingRow({ booking, token, onRefresh }: { booking: Booking; token: st
 
   async function update(field: "status" | "paymentStatus", value: string) {
     setLoading(true);
-    await fetch(`/api/admin/bookings/${booking.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", "x-admin-token": token },
-      body: JSON.stringify({ [field]: value }),
-    });
+    await adminFetch(token, `/api/admin/bookings/${booking.id}`, "PATCH", { [field]: value });
     setLoading(false);
     onRefresh();
   }
 
   async function saveAdminNotes() {
     setLoading(true);
-    await fetch(`/api/admin/bookings/${booking.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", "x-admin-token": token },
-      body: JSON.stringify({ adminNotes: notesDraft }),
-    });
+    await adminFetch(token, `/api/admin/bookings/${booking.id}`, "PATCH", { adminNotes: notesDraft });
     setLoading(false);
     setEditingNotes(false);
     onRefresh();
@@ -760,10 +743,7 @@ function BookingRow({ booking, token, onRefresh }: { booking: Booking; token: st
 
   async function deleteBooking() {
     setLoading(true);
-    await fetch(`/api/admin/bookings/${booking.id}`, {
-      method: "DELETE",
-      headers: { "x-admin-token": token },
-    });
+    await adminFetch(token, `/api/admin/bookings/${booking.id}`, "DELETE");
     setLoading(false);
     setConfirmDelete(false);
     onRefresh();
@@ -1659,11 +1639,7 @@ function UnitPriceCard({ unit, token, onRefresh }: { unit: Unit; token: string; 
   async function confirmSave() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/units/${unit.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-admin-token": token },
-        body: JSON.stringify({ pricePerNight: draftPrice }),
-      });
+      const res = await adminFetch(token, `/api/admin/units/${unit.id}`, "PATCH", { pricePerNight: draftPrice });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         setError(data.message || "Gagal menyimpan harga");
@@ -1753,14 +1729,13 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
   }>(null);
   const [clearLoading, setClearLoading] = useState(false);
 
-  const headers = { "x-admin-token": token };
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: bookings = [], refetch: refetchBookings } = useQuery<Booking[]>({
     queryKey: ["admin-bookings", token],
     queryFn: async () => {
-      const res = await fetch("/api/admin/bookings", { headers });
+      const res = await adminFetch(token, "/api/admin/bookings");
       if (res.status === 401) { onLogout(); return []; }
       return res.json();
     },
@@ -1770,7 +1745,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
   const { data: blockedDates = [], refetch: refetchBlocked } = useQuery<BlockedDate[]>({
     queryKey: ["admin-blocked", token],
     queryFn: async () => {
-      const res = await fetch("/api/admin/blocked-dates", { headers });
+      const res = await adminFetch(token, "/api/admin/blocked-dates");
       if (!res.ok) return [];
       return res.json();
     },
@@ -1814,21 +1789,17 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
 
   async function addBlockedDate(e: React.FormEvent) {
     e.preventDefault();
-    await fetch("/api/admin/blocked-dates", {
-      method: "POST",
-      headers: { ...headers, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        unitId: parseInt(blockForm.unitId),
-        date: blockForm.date,
-        reason: blockForm.reason || undefined,
-      }),
+    await adminFetch(token, "/api/admin/blocked-dates", "POST", {
+      unitId: parseInt(blockForm.unitId),
+      date: blockForm.date,
+      reason: blockForm.reason || undefined,
     });
     setBlockForm((f) => ({ ...f, date: "", reason: "" }));
     refetchBlocked();
   }
 
   async function removeBlockedDate(id: number) {
-    await fetch(`/api/admin/blocked-dates/${id}`, { method: "DELETE", headers });
+    await adminFetch(token, `/api/admin/blocked-dates/${id}`, "DELETE");
     refetchBlocked();
   }
 
@@ -1861,7 +1832,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
 
   async function handleUnblockById(id: number) {
     setClearLoading(true);
-    await fetch(`/api/admin/blocked-dates/${id}`, { method: "DELETE", headers });
+    await adminFetch(token, `/api/admin/blocked-dates/${id}`, "DELETE");
     refetchBlocked();
     setClearResult(null);
     setClearForm((f) => ({ ...f, date: "" }));
@@ -1870,11 +1841,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
 
   async function handleCancelBookingById(id: number) {
     setClearLoading(true);
-    await fetch(`/api/admin/bookings/${id}`, {
-      method: "PATCH",
-      headers: { ...headers, "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "cancelled" }),
-    });
+    await adminFetch(token, `/api/admin/bookings/${id}`, "PATCH", { status: "cancelled" });
     refetchBookings();
     setClearResult(null);
     setClearForm((f) => ({ ...f, date: "" }));
