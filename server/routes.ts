@@ -191,10 +191,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.status(404).json({ message: "Booking tidak ditemukan" });
     }
 
-    // Also fetch unit name + price (untuk breakdown harga di OrderPage)
+    // Also fetch unit name + price (untuk breakdown harga di OrderPage).
+    // adminNotes = catatan internal admin — jangan ikut ke halaman publik.
     const unit = await storage.getUnit(booking.unitId);
+    const { adminNotes: _internal, ...publicBooking } = booking;
     res.json({
-      ...booking,
+      ...publicBooking,
       unitName: unit?.name ?? "Unknown Unit",
       pricePerNight: unit?.pricePerNight ?? (booking.nights > 0 ? Math.round(booking.totalPrice / booking.nights) : 0),
     });
