@@ -35,11 +35,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Seed default units on startup
   await storage.seedUnitsIfEmpty();
 
-  // Init Web Push dengan VAPID keys dari DB (jika sudah di-setup)
-  storage.getVapidKeys().then((keys) => {
+  // Init Web Push dengan VAPID keys dari DB (jika sudah di-setup).
+  // Di-await: di serverless (Netlify) request pertama tidak boleh jalan sebelum key siap.
+  try {
+    const keys = await storage.getVapidKeys();
     if (keys) initPush(keys);
     else console.log("ℹ️  VAPID keys not set — configure via Admin Dashboard → Settings");
-  }).catch(() => {});
+  } catch { /* push opsional — abaikan */ }
 
   // ── Public: Inquiries ──────────────────────────────────────────────────────
   app.post("/api/inquiries", async (req, res) => {
@@ -137,35 +139,40 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         notes,
       });
 
+      // Email + push dijalankan paralel dan DITUNGGU sebelum membalas: di serverless
+      // (Netlify) fungsi dimatikan begitu respons terkirim, jadi kerja sesudahnya hilang.
+      // Kegagalan email/push tidak boleh menggagalkan booking yang sudah tersimpan.
+      await Promise.allSettled([
+        // Email 1: notif "pesanan diterima + instruksi bayar" — BUKAN konfirmasi final
+        sendBookingReceived({
+          guestEmail: booking.guestEmail,
+          bookingRef: booking.bookingRef,
+          guestName: booking.guestName,
+          unitName: unit.name,
+          checkIn: booking.checkIn,
+          checkOut: booking.checkOut,
+          nights: booking.nights,
+          totalPrice: booking.totalPrice,
+          pricePerNight: unit.pricePerNight,
+          guestCount: booking.guestCount,
+        }).catch((err) => console.error("❌ Receipt email failed:", err?.message ?? err)),
+
+        // Web Push: kirim notifikasi ke semua browser admin yang sudah subscribe
+        storage.getPushSubscriptions().then(async (subs) => {
+          if (subs.length === 0) return;
+          const expired = await sendPushToAll(subs, {
+            title: "🔔 Pesanan Baru!",
+            body: `${booking.guestName} memesan ${unit.name} · ${booking.checkIn} → ${booking.checkOut} · ${booking.nights} malam`,
+            tag: booking.bookingRef,
+            requireInteraction: true,
+            url: "/admin",
+          });
+          // Hapus subscription yang sudah expired (user unsubscribed dari browser)
+          if (expired.length > 0) await storage.deletePushSubscriptions(expired).catch(() => {});
+        }).catch((err) => console.error("Push notification failed:", err)),
+      ]);
+
       res.status(201).json(booking);
-
-      // Email 1: kirim notif "pesanan diterima + instruksi bayar" — BUKAN konfirmasi final
-      sendBookingReceived({
-        guestEmail: booking.guestEmail,
-        bookingRef: booking.bookingRef,
-        guestName: booking.guestName,
-        unitName: unit.name,
-        checkIn: booking.checkIn,
-        checkOut: booking.checkOut,
-        nights: booking.nights,
-        totalPrice: booking.totalPrice,
-        pricePerNight: unit.pricePerNight,
-        guestCount: booking.guestCount,
-      }).catch((err) => console.error("❌ Receipt email failed:", err?.message ?? err));
-
-      // Web Push: kirim notifikasi ke semua browser admin yang sudah subscribe
-      storage.getPushSubscriptions().then(async (subs) => {
-        if (subs.length === 0) return;
-        const expired = await sendPushToAll(subs, {
-          title: "🔔 Pesanan Baru!",
-          body: `${booking.guestName} memesan ${unit.name} · ${booking.checkIn} → ${booking.checkOut} · ${booking.nights} malam`,
-          tag: booking.bookingRef,
-          requireInteraction: true,
-          url: "/admin",
-        });
-        // Hapus subscription yang sudah expired (user unsubscribed dari browser)
-        if (expired.length > 0) storage.deletePushSubscriptions(expired).catch(() => {});
-      }).catch((err) => console.error("Push notification failed:", err));
 
       // Calendar events dibuat nanti saat admin konfirmasi (status → confirmed)
 
@@ -332,44 +339,47 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.status(404).json({ message: "Booking tidak ditemukan" });
     }
 
-    res.json(updated);
-
-    // Email 2 + Calendar: jalankan saat admin mengubah status → "confirmed"
+    // Email 2 + Calendar: jalankan saat admin mengubah status → "confirmed".
+    // Semua DITUNGGU sebelum membalas (lihat catatan serverless di POST /api/bookings).
     if (status === "confirmed") {
       const unit = await storage.getUnit(updated.unitId);
 
-      // Kirim email konfirmasi ke tamu
-      sendBookingConfirmation({
-        guestEmail: updated.guestEmail,
-        bookingRef: updated.bookingRef,
-        guestName: updated.guestName,
-        unitName: unit?.name ?? "Ndalem Pleret",
-        checkIn: updated.checkIn,
-        checkOut: updated.checkOut,
-        nights: updated.nights,
-        totalPrice: updated.totalPrice,
-        pricePerNight: unit?.pricePerNight ?? 0,
-        guestCount: updated.guestCount,
-      }).catch((err) => console.error("❌ Confirmation email failed:", err?.message ?? err));
+      await Promise.allSettled([
+        // Kirim email konfirmasi ke tamu
+        sendBookingConfirmation({
+          guestEmail: updated.guestEmail,
+          bookingRef: updated.bookingRef,
+          guestName: updated.guestName,
+          unitName: unit?.name ?? "Ndalem Pleret",
+          checkIn: updated.checkIn,
+          checkOut: updated.checkOut,
+          nights: updated.nights,
+          totalPrice: updated.totalPrice,
+          pricePerNight: unit?.pricePerNight ?? 0,
+          guestCount: updated.guestCount,
+        }).catch((err) => console.error("❌ Confirmation email failed:", err?.message ?? err)),
 
-      // Buat 3 Google Calendar events (all-day stay + check-in + check-out)
-      createBookingCalendarEvents({
-        bookingRef: updated.bookingRef,
-        guestName: updated.guestName,
-        unitName: unit?.name ?? "Ndalem Pleret",
-        checkIn: updated.checkIn,
-        checkOut: updated.checkOut,
-        nights: updated.nights,
-        guestCount: updated.guestCount,
-        guestPhone: updated.guestPhone,
-      }).catch((err) => console.error("❌ Google Calendar failed:", err));
+        // Buat 3 Google Calendar events (all-day stay + check-in + check-out)
+        createBookingCalendarEvents({
+          bookingRef: updated.bookingRef,
+          guestName: updated.guestName,
+          unitName: unit?.name ?? "Ndalem Pleret",
+          checkIn: updated.checkIn,
+          checkOut: updated.checkOut,
+          nights: updated.nights,
+          guestCount: updated.guestCount,
+          guestPhone: updated.guestPhone,
+        }).catch((err) => console.error("❌ Google Calendar failed:", err)),
+      ]);
     }
 
     // Google Calendar: hapus semua event jika booking dibatalkan
     if (status === "cancelled") {
-      deleteBookingCalendarEvents(updated.bookingRef)
+      await deleteBookingCalendarEvents(updated.bookingRef)
         .catch((err) => console.error("Calendar delete failed:", err));
     }
+
+    res.json(updated);
   });
 
   // ── Admin: Delete Booking ─────────────────────────────────────────────────
@@ -380,11 +390,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.status(404).json({ message: "Booking tidak ditemukan" });
     }
 
-    res.status(204).send();
-
-    // Hapus Google Calendar events terkait booking ini
-    deleteBookingCalendarEvents(deleted.bookingRef)
+    // Hapus Google Calendar events terkait booking ini (ditunggu — lihat catatan serverless)
+    await deleteBookingCalendarEvents(deleted.bookingRef)
       .catch((err) => console.error("Calendar delete on booking-delete failed:", err));
+
+    res.status(204).send();
   });
 
   // ── Admin: Blocked Dates ───────────────────────────────────────────────────

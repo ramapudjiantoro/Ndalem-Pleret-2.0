@@ -13,3 +13,6 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+# Netlify
+.netlify
+netlify/functions

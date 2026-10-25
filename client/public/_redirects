@@ -1,2 +1,3 @@
 https://ndalempleret.netlify.app/*  https://ndalempleret.com/:splat  301!
+/api/*  /.netlify/functions/api/:splat  200
 /*  /index.html  200

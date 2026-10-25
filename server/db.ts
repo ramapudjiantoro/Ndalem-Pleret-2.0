@@ -16,9 +16,16 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+// Di Netlify Functions (AWS Lambda) tiap instance memegang pool sendiri, jadi dibatasi
+// kecil supaya banyak instance paralel tidak menghabiskan slot koneksi Supabase.
+const isServerless = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+
 // Pool is only created when DATABASE_URL is available
 export const pool = process.env.DATABASE_URL
-  ? new Pool({ connectionString: process.env.DATABASE_URL })
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ...(isServerless ? { max: 2, idleTimeoutMillis: 10_000 } : {}),
+    })
   : null;
 
 export const db = process.env.DATABASE_URL

@@ -1,11 +1,11 @@
-import { google } from "googleapis";
-
 // ─── Config ───────────────────────────────────────────────────────────────────
 const CALENDAR_ID = "remopdj04@gmail.com";
 const TIMEZONE    = "Asia/Jakarta"; // WIB = UTC+7
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
-function createAuth() {
+// googleapis dimuat belakangan (dynamic import): paketnya besar dan hanya dipakai saat
+// booking dikonfirmasi/dibatalkan — jangan memperlambat cold start fungsi serverless.
+async function createAuth() {
   const clientId     = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
@@ -20,9 +20,10 @@ function createAuth() {
     return null;
   }
 
+  const { google } = await import("googleapis");
   const auth = new google.auth.OAuth2(clientId, clientSecret);
   auth.setCredentials({ refresh_token: refreshToken });
-  return auth;
+  return { google, auth };
 }
 
 // Ekstrak pesan error dari respons Google API
@@ -52,8 +53,9 @@ export async function createBookingCalendarEvents(data: {
   guestCount: number;
   guestPhone: string;
 }): Promise<void> {
-  const auth = createAuth();
-  if (!auth) return; // warning sudah dilog di createAuth()
+  const ctx = await createAuth();
+  if (!ctx) return; // warning sudah dilog di createAuth()
+  const { google, auth } = ctx;
 
   // Verifikasi token dulu sebelum insert
   try {
@@ -131,8 +133,9 @@ export async function createBookingCalendarEvents(data: {
 
 // ─── Hapus Events saat Pembatalan ─────────────────────────────────────────────
 export async function deleteBookingCalendarEvents(bookingRef: string): Promise<void> {
-  const auth = createAuth();
-  if (!auth) return;
+  const ctx = await createAuth();
+  if (!ctx) return;
+  const { google, auth } = ctx;
 
   try {
     await auth.refreshAccessToken();

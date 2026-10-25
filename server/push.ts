@@ -2,8 +2,7 @@
 // Keys dibaca dari DB (adminConfig) agar bisa di-setup dari Admin Dashboard
 // tanpa perlu menyentuh Railway Variables.
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const webPush = require("web-push") as typeof import("web-push");
+import webPush from "web-push";
 
 export interface PushSubscriptionData {
   endpoint: string;
