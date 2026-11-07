@@ -1,5 +1,5 @@
 import { db as rawDb } from "./db";
-import { eq, and, gt, gte, lt, ne } from "drizzle-orm";
+import { eq, and, gt, gte, lt, lte, ne, inArray } from "drizzle-orm";
 
 // Guard: throw a friendly error if DATABASE_URL was never set
 function requireDb() {
@@ -98,6 +98,10 @@ export interface IStorage {
   // Blocked Dates
   blockDate(unitId: number, date: string, reason?: string): Promise<BlockedDate>;
   deleteBlockedDate(id: number): Promise<void>;
+  /** Blokir banyak tanggal sekaligus; tanggal yang sudah diblokir dilewati. */
+  blockDates(unitId: number, dates: string[], reason?: string): Promise<BlockedDate[]>;
+  /** Hapus semua blokir manual unit ini di rentang [start, end] (inklusif). Mengembalikan jumlah yang dihapus. */
+  deleteBlockedDatesInRange(unitId: number, start: string, end: string): Promise<number>;
 
   // Push Subscriptions
   savePushSubscription(data: { endpoint: string; p256dh: string; auth: string }): Promise<void>;
@@ -402,6 +406,29 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBlockedDate(id: number): Promise<void> {
     await db.delete(blockedDates).where(eq(blockedDates.id, id));
+  }
+
+  async blockDates(unitId: number, dates: string[], reason?: string): Promise<BlockedDate[]> {
+    if (dates.length === 0) return [];
+    const existing = await db
+      .select({ date: blockedDates.date })
+      .from(blockedDates)
+      .where(and(eq(blockedDates.unitId, unitId), inArray(blockedDates.date, dates)));
+    const already = new Set(existing.map((e) => String(e.date).slice(0, 10)));
+    const toInsert = dates.filter((d) => !already.has(d));
+    if (toInsert.length === 0) return [];
+    return db
+      .insert(blockedDates)
+      .values(toInsert.map((date) => ({ unitId, date, reason: reason ?? null })))
+      .returning();
+  }
+
+  async deleteBlockedDatesInRange(unitId: number, start: string, end: string): Promise<number> {
+    const deleted = await db
+      .delete(blockedDates)
+      .where(and(eq(blockedDates.unitId, unitId), gte(blockedDates.date, start), lte(blockedDates.date, end)))
+      .returning({ id: blockedDates.id });
+    return deleted.length;
   }
 
   // ── Push Subscriptions ─────────────────────────────────────────────────────

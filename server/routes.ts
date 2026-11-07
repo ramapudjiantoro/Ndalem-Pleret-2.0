@@ -414,6 +414,61 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.status(201).json(blocked);
   });
 
+  // Rentang tanggal: blokir / kosongkan dari startDate s.d. endDate (keduanya inklusif).
+  // unitIds boleh berisi 1, 2, atau keduanya.
+  const rangeSchema = z.object({
+    unitIds: z.array(z.number().int().positive()).min(1),
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    reason: z.string().max(200).optional(),
+  });
+  const MAX_RANGE_DAYS = 366;
+
+  function expandDateRange(start: string, end: string): string[] {
+    const out: string[] = [];
+    const d = new Date(start + "T12:00:00Z");
+    while (d.toISOString().slice(0, 10) <= end && out.length <= MAX_RANGE_DAYS) {
+      out.push(d.toISOString().slice(0, 10));
+      d.setUTCDate(d.getUTCDate() + 1);
+    }
+    return out;
+  }
+
+  function parseRange(body: unknown) {
+    const parsed = rangeSchema.safeParse(body);
+    if (!parsed.success) return { error: "Data rentang tanggal tidak valid" } as const;
+    const { startDate, endDate } = parsed.data;
+    if (isNaN(Date.parse(startDate)) || isNaN(Date.parse(endDate))) return { error: "Tanggal tidak valid" } as const;
+    if (endDate < startDate) return { error: "Tanggal akhir tidak boleh sebelum tanggal awal" } as const;
+    const dates = expandDateRange(startDate, endDate);
+    if (dates.length > MAX_RANGE_DAYS) return { error: `Rentang maksimal ${MAX_RANGE_DAYS} hari` } as const;
+    return { data: parsed.data, dates } as const;
+  }
+
+  app.post("/api/admin/blocked-dates/range", adminAuth, async (req, res) => {
+    const r = parseRange(req.body);
+    if ("error" in r) return res.status(400).json({ message: r.error });
+    const { unitIds, reason } = r.data;
+    let created = 0;
+    for (const uid of Array.from(new Set(unitIds))) {
+      const rows = await storage.blockDates(uid, r.dates, reason?.trim() || undefined);
+      created += rows.length;
+    }
+    const requested = r.dates.length * new Set(unitIds).size;
+    res.status(201).json({ created, skipped: requested - created, days: r.dates.length });
+  });
+
+  app.post("/api/admin/blocked-dates/clear-range", adminAuth, async (req, res) => {
+    const r = parseRange(req.body);
+    if ("error" in r) return res.status(400).json({ message: r.error });
+    const { unitIds, startDate, endDate } = r.data;
+    let deleted = 0;
+    for (const uid of Array.from(new Set(unitIds))) {
+      deleted += await storage.deleteBlockedDatesInRange(uid, startDate, endDate);
+    }
+    res.json({ deleted });
+  });
+
   app.delete("/api/admin/blocked-dates/:id", adminAuth, async (req, res) => {
     const id = parseInt(req.params.id, 10);
     await storage.deleteBlockedDate(id);
